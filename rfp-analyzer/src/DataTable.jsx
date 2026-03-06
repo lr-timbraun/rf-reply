@@ -97,6 +97,36 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     setChatHistory([]);
   }, [header]);
 
+  const model = useMemo(() => {
+    if (!apiSettings.apiKey || !apiSettings.model) return null;
+    try {
+      const genAI = new GoogleGenerativeAI(apiSettings.apiKey);
+      const docContext = apiSettings.docSource ? ` Use only the latest official documentation available at ${apiSettings.docSource} for replying to these prompts.` : '';
+      const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
+      
+      // PROTOCOL COMPRESSION: All rules relevant to every prompt are defined here once.
+      const protocolRules = `
+GLOBAL PROTOCOL:
+1. You will receive one or more "Tasks" for a single RFP requirement.
+2. Coordinate your answers across all tasks for that row to ensure consistency.
+3. OUTPUT FORMAT: Respond ONLY with a valid JSON object.
+4. JSON SCHEMA: { "replies": [ { "taskId": number, "text": string, "sources": string[] } ] }
+5. TEXT RULES: 
+   - No Markdown (no bold, italics, lists, etc.).
+   - If the prompt provides specific options, you MUST choose one and return ONLY that exact text.
+   - Respond in ${apiSettings.responseLanguage || 'English'}.
+`;
+      
+      return genAI.getGenerativeModel({
+        model: apiSettings.model,
+        systemInstruction: `${baseInstruction}${apiSettings.systemInstructions}${docContext}${protocolRules}`,
+      });
+    } catch (e) {
+      console.error("Error initializing AI model:", e);
+      return null;
+    }
+  }, [apiSettings]);
+
   const startEditing = (absIndex, colIndex, currentValue) => {
     setEditingCell(`${absIndex}-${colIndex}`);
     setEditValue(currentValue || '');
@@ -194,15 +224,19 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     return translations[lang] || 'Sources';
   };
 
-  const generateResponseForRow = async (model, rowValues, activeCols, history, signal) => {
+  const generateResponseForRow = async (rowValues, activeCols, history, signal) => {
+    if (!model) {
+      return { results: activeCols.map(c => ({ colIndex: c.colIndex, text: 'Error: Model not initialized', excelText: 'Error', sources: [] })), newMessages: [] };
+    }
+
     const generationConfig = {
       temperature: apiSettings.temperature,
       maxOutputTokens: apiSettings.maxTokens,
       responseMimeType: "application/json",
     };
 
-    // Prepare the unified prompt
-    let unifiedPrompt = "For this specific RFP requirement, please perform the following tasks and provide a coordinated response:\n\n";
+    // COMPRESSED PROMPT: No meta-instructions, just the requirement data
+    let compressedPrompt = "Tasks for this requirement:\n";
     
     activeCols.forEach((col, index) => {
       let cellPrompt = col.promptTemplate;
@@ -213,10 +247,8 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         const value = rowValues[i] !== null && rowValues[i] !== undefined ? rowValues[i] : '';
         cellPrompt = cellPrompt.replace(placeholder, value);
       });
-      unifiedPrompt += `Task ID ${index} (Target Column: ${header[col.colIndex] || col.colIndex}):\n${cellPrompt}\n\n`;
+      compressedPrompt += `ID ${index}: ${cellPrompt}\n`;
     });
-
-    unifiedPrompt += "IMPORTANT: Respond ONLY with a JSON object. Ensure the 'text' for each reply follows these rules: If specific options were provided, use ONLY the chosen option text. Do NOT use Markdown formatting (no bold, italics, etc.).\n\nReturn the following JSON structure:\n{\n  \"replies\": [\n    { \"taskId\": 0, \"text\": \"...\", \"sources\": [\"url1\", \"url2\"] },\n    ...\n  ]\n}";
 
     try {
       const chat = model.startChat({
@@ -224,7 +256,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         generationConfig,
       });
 
-      const resultPromise = chat.sendMessage(unifiedPrompt);
+      const resultPromise = chat.sendMessage(compressedPrompt);
       
       const response = await Promise.race([
         resultPromise,
@@ -245,7 +277,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
       }
 
       const results = activeCols.map((col, index) => {
-        const reply = parsedResponse.replies.find(r => r.taskId === index) || { text: 'Error: No reply for task', sources: [] };
+        const reply = parsedResponse.replies.find(r => r.taskId === index || r.id === index) || { text: 'Error: No reply', sources: [] };
         
         let text = reply.text;
         let sources = Array.isArray(reply.sources) ? reply.sources.map(s => ({ uri: s, title: s })) : [];
@@ -265,9 +297,12 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         };
       });
 
+      // HISTORY THINNING:
+      const thinnedModelReply = results.map(r => `Answer for ${header[r.colIndex] || r.colIndex}: ${r.text}`).join('\\n');
+
       const newMessages = [
-        { role: 'user', parts: [{ text: unifiedPrompt }] },
-        { role: 'model', parts: [{ text: rawText }] }
+        { role: 'user', parts: [{ text: compressedPrompt }] },
+        { role: 'model', parts: [{ text: thinnedModelReply }] }
       ];
 
       return { results, newMessages };
@@ -293,14 +328,6 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     let currentHistory = [...chatHistory];
 
     try {
-      const genAI = new GoogleGenerativeAI(apiSettings.apiKey);
-      const docContext = apiSettings.docSource ? ` Use only the latest official documentation available at ${apiSettings.docSource} for replying to these prompts.` : '';
-      const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
-      const model = genAI.getGenerativeModel({
-        model: apiSettings.model,
-        systemInstruction: `${baseInstruction}${apiSettings.systemInstructions}${docContext} Respond in ${apiSettings.responseLanguage || 'English'}.`,
-      });
-
       for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
         if (controller.signal.aborted) break;
 
@@ -330,7 +357,6 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         });
 
         const response = await generateResponseForRow(
-          model,
           row.values,
           activeCols,
           currentHistory,
@@ -373,15 +399,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     const cellKey = `${absIndex}-${colIndex}`;
     setCellStates(prev => ({ ...prev, [cellKey]: 'loading' }));
 
-    const genAI = new GoogleGenerativeAI(apiSettings.apiKey);
-    const docContext = apiSettings.docSource ? ` Use only the latest official documentation available at ${apiSettings.docSource} for replying to these prompts.` : '';
-    const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
-    const model = genAI.getGenerativeModel({
-      model: apiSettings.model,
-      systemInstruction: `${baseInstruction}${apiSettings.systemInstructions}${docContext} Respond in ${apiSettings.responseLanguage || 'English'}.`,
-    });
-
-    const response = await generateResponseForRow(model, dataRows[rowIndex].values, [{ colIndex, promptTemplate }], chatHistory);
+    const response = await generateResponseForRow(dataRows[rowIndex].values, [{ colIndex, promptTemplate }], chatHistory);
     
     if (response.results.length > 0) {
       const res = response.results[0];
