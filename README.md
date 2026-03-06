@@ -11,10 +11,13 @@ The RFP Analyzer streamlines the process of responding to complex technical requ
 
 ## Key Features
 
+- **Context-Aware Conversations**: The AI maintains a conversation history for each tab, ensuring responses are consistent and aware of previous requirements.
+- **Unified Row Requests**: Multiple columns per row are processed in a single API call, ensuring perfect coordination between answers (e.g., matching a "Yes/No" status with its explanation).
 - **AI-Powered Responses**: Directly integrated with the Google Generative AI SDK (`@google/generative-ai`).
 - **Excel Workflow**: Upload RFP spreadsheets, select relevant columns, and process requirements in bulk or individually.
+- **Documentation Reference**: Specify a documentation URL (e.g., a product manual) to guide the AI's knowledge base.
 - **Secure Configuration**: API keys and sensitive settings are encrypted using AES (via `crypto-js`) before being stored in the browser's local storage.
-- **Customizable AI Parameters**: Fine-tune the AI's behavior by adjusting temperature, max tokens, and system instructions.
+- **Customizable AI Parameters**: Fine-tune the AI's behavior by adjusting temperature, max tokens, and additional system instructions.
 - **Built-in User Manual**: Accessible documentation within the app to guide users through the workflow.
 
 ## Project Structure
@@ -65,9 +68,10 @@ The application will be available at `http://localhost:3000`.
 Upon launching the application, click on the **Settings** button to configure:
 1. **API Key**: Your Google Gemini API key.
 2. **Model**: Select the desired Gemini model (e.g., Gemini 1.5 Flash).
-3. **System Instructions**: Define the AI's persona and context (e.g., "You are a Sales Engineer for Liferay...").
+3. **Documentation Source**: Provide a URL for the AI to use as its primary knowledge reference.
+4. **Additional System Instructions**: Define any extra context or persona details.
 
 Settings are saved securely in your browser and are not sent to any backend other than the official Google AI APIs.
 
 ---
-*Note: This tool is intended for internal use by Liferay Sales Engineers.*
+*Note: This tool is intended for internal use by Sales Engineers.*
