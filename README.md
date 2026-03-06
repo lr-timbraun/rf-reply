@@ -1,6 +1,6 @@
 # RFP Analyzer
 
-A specialized tool designed for Sales Engineers to analyze and generate responses for RFP (Request for Proposal) documents. It leverages Google Gemini AI to provide high-quality, context-aware answers based on official Liferay documentation.
+A specialized tool designed for Sales Engineers to analyze and generate responses for RFP (Request for Proposal) documents. It leverages Google Gemini AI to provide high-quality, context-aware answers.
 
 ## Overview
 
