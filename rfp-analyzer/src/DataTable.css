@@ -9,6 +9,28 @@
   margin-bottom: 10px;
 }
 
+.table-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.reset-button {
+  background-color: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.reset-button:hover {
+  background-color: #5a6268;
+}
+
 .stop-button {
   background-color: #ff4d4f;
   color: white;

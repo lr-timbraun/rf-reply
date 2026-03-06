@@ -82,6 +82,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
   const [abortController, setAbortController] = useState(null);
   const [editingCell, setEditingCell] = useState(null); // 'absIndex-colIndex'
   const [editValue, setEditValue] = useState('');
+  const [chatHistory, setChatHistory] = useState([]); // Array of { role: 'user' | 'model', parts: [{ text: '...' }] }
 
   useEffect(() => {
     setInputValues(Array(header.length).fill(''));
@@ -93,6 +94,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     if (abortController) abortController.abort();
     setAbortController(null);
     setEditingCell(null);
+    setChatHistory([]);
   }, [header]);
 
   const startEditing = (absIndex, colIndex, currentValue) => {
@@ -127,6 +129,11 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
       setAbortController(null);
     }
     setIsProcessing(false);
+  };
+
+  const handleResetConversation = () => {
+    setChatHistory([]);
+    alert('Conversation history reset for this tab.');
   };
 
   const handleHeaderClick = (headerText) => {
@@ -187,10 +194,10 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     return translations[lang] || 'Sources';
   };
 
-  const generateResponseForCell = async (rowValues, colIndex, promptTemplate, signal) => {
+  const generateResponseForCell = async (rowValues, colIndex, promptTemplate, history, signal) => {
     if (!apiSettings.apiKey) {
       alert('Please set your API key in the settings.');
-      return { text: 'Error: API Key Missing', sources: [] };
+      return { text: 'Error: API Key Missing', sources: [], updatedHistory: history };
     }
 
     const genAI = new GoogleGenerativeAI(apiSettings.apiKey);
@@ -219,7 +226,12 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     });
 
     try {
-      const resultPromise = model.generateContent(prompt, generationConfig);
+      const chat = model.startChat({
+        history: history,
+        generationConfig,
+      });
+
+      const resultPromise = chat.sendMessage(prompt);
       
       const response = await Promise.race([
         resultPromise,
@@ -241,9 +253,14 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         }));
       }
 
+      // Update history
+      const updatedHistory = [
+        ...history,
+        { role: 'user', parts: [{ text: prompt }] },
+        { role: 'model', parts: [{ text: text }] }
+      ];
+
       // Formulate the text for the Excel sheet.
-      // If the response is very short (e.g. just a status or option selection), we omit sources
-      // to keep the sheet clean and respect potential data validations.
       let finalTextForExcel = text;
       if (text.length > 25 && sources.length > 0) {
         const sourcesLabel = getSourcesLabel(apiSettings.responseLanguage || 'English');
@@ -254,14 +271,15 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
       return { 
         text: text, 
         excelText: finalTextForExcel,
-        sources: sources 
+        sources: sources,
+        updatedHistory
       };
     } catch (error) {
       if (error.message === 'Aborted') {
-        return { text: 'Cancelled', excelText: 'Cancelled', sources: [] };
+        return { text: 'Cancelled', excelText: 'Cancelled', sources: [], updatedHistory: history };
       }
       console.error('API Error:', error);
-      return { text: 'Error', excelText: 'Error', sources: [] };
+      return { text: 'Error', excelText: 'Error', sources: [], updatedHistory: history };
     }
   };
 
@@ -270,7 +288,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     const controller = new AbortController();
     setAbortController(controller);
 
-    const CHUNK_SIZE = 5; // Number of parallel requests
+    let currentHistory = [...chatHistory];
 
     try {
       // Collect all tasks that need processing
@@ -289,42 +307,37 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         }
       }
 
-      // Process tasks in chunks
-      for (let i = 0; i < tasks.length; i += CHUNK_SIZE) {
+      // Process tasks SEQUENTIALLY to maintain conversation context
+      for (let i = 0; i < tasks.length; i++) {
         if (controller.signal.aborted) break;
 
-        const chunk = tasks.slice(i, i + CHUNK_SIZE);
+        const task = tasks[i];
         
-        // Mark all cells in the current chunk as loading
-        setCellStates(prev => {
-          const newState = { ...prev };
-          chunk.forEach(t => {
-            newState[`${t.absIndex}-${t.colIndex}`] = 'loading';
-          });
-          return newState;
-        });
-
-        // Execute chunk in parallel
-        await Promise.all(chunk.map(async (task) => {
-          if (controller.signal.aborted) return;
-
-          const response = await generateResponseForCell(
-            dataRows[task.rowIndex].values, 
-            task.colIndex, 
-            task.promptTemplate, 
-            controller.signal
-          );
-
-          if (!controller.signal.aborted) {
-            setCellStates(prev => ({ 
-              ...prev, 
-              [`${task.absIndex}-${task.colIndex}`]: response 
-            }));
-            if (onCellUpdate) {
-              onCellUpdate(task.absIndex, task.colIndex + colOffset, response.excelText);
-            }
-          }
+        // Mark current cell as loading
+        setCellStates(prev => ({
+          ...prev,
+          [`${task.absIndex}-${task.colIndex}`]: 'loading'
         }));
+
+        const response = await generateResponseForCell(
+          dataRows[task.rowIndex].values, 
+          task.colIndex, 
+          task.promptTemplate, 
+          currentHistory,
+          controller.signal
+        );
+
+        if (!controller.signal.aborted) {
+          currentHistory = response.updatedHistory;
+          setChatHistory(currentHistory);
+          setCellStates(prev => ({ 
+            ...prev, 
+            [`${task.absIndex}-${task.colIndex}`]: response 
+          }));
+          if (onCellUpdate) {
+            onCellUpdate(task.absIndex, task.colIndex + colOffset, response.excelText);
+          }
+        }
       }
     } finally {
       setIsProcessing(false);
@@ -343,8 +356,10 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
 
     const cellKey = `${absIndex}-${colIndex}`;
     setCellStates(prev => ({ ...prev, [cellKey]: 'loading' }));
-    const response = await generateResponseForCell(dataRows[rowIndex].values, colIndex, promptTemplate);
+    // For refresh, we use the current history as is
+    const response = await generateResponseForCell(dataRows[rowIndex].values, colIndex, promptTemplate, chatHistory);
     setCellStates(prev => ({ ...prev, [cellKey]: response }));
+    setChatHistory(response.updatedHistory);
     if (onCellUpdate) {
       onCellUpdate(absIndex, colIndex + colOffset, response.excelText);
     }
@@ -391,9 +406,12 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     <div className="table-container">
       <div className="table-header-row">
         <h2>{tabName}</h2>
-        {isProcessing && (
-          <button className="stop-button" onClick={handleStopClick}>Stop Processing</button>
-        )}
+        <div className="table-header-actions">
+          <button className="reset-button" onClick={handleResetConversation} title="Clear conversation history for this tab">Reset History</button>
+          {isProcessing && (
+            <button className="stop-button" onClick={handleStopClick}>Stop Processing</button>
+          )}
+        </div>
       </div>
       <table>
         <thead>
