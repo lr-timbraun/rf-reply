@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import ExcelJS from 'exceljs';
-import TabsSelectionModal from './TabsSelectionModal';
-import DataTable from './DataTable';
+import TabsSelectionModal from '../TabsSelectionModal/TabsSelectionModal';
+import DataTable from '../DataTable/DataTable';
+import { excelService } from '../../services/excelService';
 
 const ExcelUploader = ({ apiSettings }) => {
   const [workbook, setWorkbook] = useState(null);
@@ -18,49 +18,25 @@ const ExcelUploader = ({ apiSettings }) => {
       setFileName(file.name);
       const reader = new FileReader();
       reader.onload = async (evt) => {
-        const buffer = evt.target.result;
-        const wb = new ExcelJS.Workbook();
-        await wb.xlsx.load(buffer);
-        setWorkbook(wb);
-        setSheetNames(wb.worksheets.map(ws => ws.name));
-        setShowModal(true);
+        try {
+          const wb = await excelService.loadWorkbook(evt.target.result);
+          setWorkbook(wb);
+          setSheetNames(wb.worksheets.map(ws => ws.name));
+          setShowModal(true);
+        } catch (err) {
+          console.error("Excel load error:", err);
+          alert("Failed to load Excel file.");
+        }
       };
       reader.readAsArrayBuffer(file);
     }
   };
 
   const handleTabSelection = (tabs) => {
-    const data = {};
-    tabs.forEach(tabName => {
-      const worksheet = workbook.getWorksheet(tabName);
-      const currentTabData = [];
-      const maxCol = worksheet.columnCount;
-      
-      // Capture all rows up to the last row with data
-      for (let i = 1; i <= worksheet.rowCount; i++) {
-        const row = worksheet.getRow(i);
-        const rowValues = [];
-        // ExcelJS is 1-indexed for cells. We populate rowValues[1...maxCol]
-        // to match ExcelJS's internal sparse array structure.
-        if (row) {
-          for (let j = 1; j <= maxCol; j++) {
-            rowValues[j] = row.getCell(j).value;
-          }
-        }
-        currentTabData.push({
-          values: rowValues,
-          absIndex: i
-        });
-      }
-      data[tabName] = currentTabData;
-    });
-    setSelectedTabs(tabs);
+    const data = excelService.extractTabsData(workbook, tabs);
     setTabData(data);
+    setSelectedTabs(tabs);
     setCurrentTabIndex(0);
-    setShowModal(false);
-  };
-
-  const handleCancel = () => {
     setShowModal(false);
   };
 
@@ -83,24 +59,18 @@ const ExcelUploader = ({ apiSettings }) => {
 
   const handleCellUpdate = (absIndex, worksheetColIndex, newValue) => {
     if (!workbook) return;
-    const worksheet = workbook.getWorksheet(currentTabName);
-    const worksheetRow = worksheet.getRow(absIndex);
-    // worksheetColIndex is now the absolute 1-based index of the column
-    worksheetRow.getCell(worksheetColIndex).value = newValue;
-    worksheetRow.commit();
+    excelService.updateCell(workbook, currentTabName, absIndex, worksheetColIndex, newValue);
   };
 
   const handleDownload = async () => {
     if (!workbook) return;
     try {
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const blob = await excelService.generateDownloadBlob(workbook);
       const url = window.URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
       
-      const dotIndex = fileName.lastIndexOf('.');
-      const baseName = dotIndex !== -1 ? fileName.substring(0, dotIndex) : fileName;
+      const baseName = fileName.replace(/\.[^/.]+$/, "");
       anchor.download = `${baseName}_analyzed.xlsx`;
       
       anchor.click();
@@ -128,7 +98,7 @@ const ExcelUploader = ({ apiSettings }) => {
         <TabsSelectionModal
           tabs={sheetNames}
           onConfirm={handleTabSelection}
-          onCancel={handleCancel}
+          onCancel={() => setShowModal(false)}
         />
       )}
       {currentData && (

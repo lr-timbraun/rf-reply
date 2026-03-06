@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { constructSystemInstruction } from '../../utils/promptUtils';
 import './Settings.css';
 
 const InfoIcon = ({ onClick }) => (
@@ -100,12 +101,6 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
     if (temp <= 0.5) return 'Balanced';
     if (temp <= 0.8) return 'Creative';
     return 'Very Creative';
-  };
-
-  const getFullSystemInstructions = () => {
-    const docContext = docSource ? ` Use only the latest official documentation available at ${docSource} for replying to these prompts.` : '';
-    const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
-    return `${baseInstruction}${systemInstructions}${docContext} Respond in ${responseLanguage || 'English'}.`;
   };
 
   return (
@@ -230,7 +225,7 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
             <div className="modal-body">
               <p>This is the complete system instruction sent to the Gemini API:</p>
               <pre className="full-instructions-preview">
-                {getFullSystemInstructions()}
+                {constructSystemInstruction({ systemInstructions, docSource, responseLanguage })}
               </pre>
               <small className="modal-note">
                 Note: The app also appends formatting rules and option handling instructions directly to each individual prompt.
