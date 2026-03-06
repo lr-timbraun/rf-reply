@@ -67,13 +67,23 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     if (table.activeInputIndex === null) return;
     const placeholder = `{${headerText}}`;
     const index = table.activeInputIndex;
-    const currentVal = table.inputValues[index];
-    const cursorPos = table.cursorPositions[index];
+    const currentVal = table.inputValues[index] || '';
+    const cursorPos = table.cursorPositions[index] || 0;
+    
+    // Insert placeholder at cursor position
     const newVal = `${currentVal.substring(0, cursorPos)}${placeholder}${currentVal.substring(cursorPos)}`;
+    
     const newInputValues = [...table.inputValues];
     newInputValues[index] = newVal;
     table.setInputValues(newInputValues);
+
     const newCursorPos = cursorPos + placeholder.length;
+    
+    // We need to update the cursor position in state as well
+    const newCursorPositions = [...table.cursorPositions];
+    newCursorPositions[index] = newCursorPos;
+    table.setCursorPositions(newCursorPositions);
+
     setTimeout(() => {
       const textarea = inputRefs.current[index];
       if (textarea) {
@@ -224,6 +234,21 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
                   }}
                   onFocus={(e) => {
                     table.setActiveInputIndex(index);
+                    const next = [...table.cursorPositions];
+                    next[index] = e.target.selectionStart;
+                    table.setCursorPositions(next);
+                  }}
+                  onClick={(e) => {
+                    const next = [...table.cursorPositions];
+                    next[index] = e.target.selectionStart;
+                    table.setCursorPositions(next);
+                  }}
+                  onKeyUp={(e) => {
+                    const next = [...table.cursorPositions];
+                    next[index] = e.target.selectionStart;
+                    table.setCursorPositions(next);
+                  }}
+                  onSelect={(e) => {
                     const next = [...table.cursorPositions];
                     next[index] = e.target.selectionStart;
                     table.setCursorPositions(next);
