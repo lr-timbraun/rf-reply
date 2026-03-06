@@ -1,0 +1,159 @@
+.settings-container {
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.settings-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.settings-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+}
+
+.settings-content {
+  padding: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.api-key-group {
+  display: flex;
+  gap: 10px;
+}
+
+.api-key-group input {
+  flex-grow: 1;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+  font-family: inherit;
+}
+
+.settings-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settings-fieldset:disabled {
+  opacity: 0.5;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.back-button,
+.save-button,
+.test-button {
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.save-button {
+  background-color: #61dafb;
+}
+
+.test-button {
+  background-color: #4CAF50; /* Green */
+}
+
+.test-button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+.save-button:disabled {
+  background-color: #aaa;
+  cursor: not-allowed;
+}
+
+.test-status {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.test-status.success {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.test-status.error {
+  background-color: #f44336;
+  color: white;
+}
+
+.token-estimate {
+  margin-top: 5px;
+  font-size: 0.85rem;
+  color: #666;
+  font-style: italic;
+}
+
+.temp-description {
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: #666;
+  margin-left: 5px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    background-color: #444;
+    color: white;
+    border-color: #555;
+  }
+  .token-estimate {
+    color: #aaa;
+  }
+  .temp-description {
+    color: #aaa;
+  }
+}

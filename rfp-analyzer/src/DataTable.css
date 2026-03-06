@@ -1,0 +1,284 @@
+.table-container {
+  margin-top: 20px;
+}
+
+.table-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.stop-button {
+  background-color: #ff4d4f;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.stop-button:hover {
+  background-color: #ff7875;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+
+.clickable-header {
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.header-input {
+  width: 100%;
+  padding: 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-width: 150px;
+}
+
+.response-cell-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.response-text {
+  flex-grow: 1;
+}
+
+.response-text.editable {
+  cursor: text;
+  display: block;
+  min-height: 20px;
+  width: 100%;
+}
+
+.response-text.editable:hover {
+  background-color: #f0f8ff;
+  border-radius: 2px;
+}
+
+.inline-editor {
+  width: 100%;
+  padding: 4px;
+  border: 1px solid #61dafb;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: inherit;
+  box-sizing: border-box;
+  min-height: 40px;
+  resize: vertical;
+}
+
+.refresh-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.refresh-button:hover {
+  color: #000;
+}
+
+.response-sources {
+  margin-top: 10px;
+  font-size: 0.8em;
+  color: #555;
+}
+
+.response-sources ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.response-sources li {
+  margin-bottom: 5px;
+}
+
+.response-sources a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+.response-sources a:hover {
+  text-decoration: underline;
+}
+
+.table-actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cancel-button,
+.go-button {
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.cancel-button {
+  background-color: #f44336; /* Red */
+}
+
+.go-button {
+  background-color: #4CAF50; /* Green */
+  margin-right: 10px;
+}
+
+/* Skip column styles */
+.skip-column-header {
+  width: 50px;
+  text-align: center;
+  background-color: #f2f2f2;
+}
+
+.skip-column-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.row-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.skip-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  color: #dc3545; /* Red for the X */
+  font-size: 1.2em;
+}
+
+.skip-button:hover {
+  color: #bd2130;
+}
+
+.set-header-button {
+  background: none;
+  border: 1px solid #28a745;
+  color: #28a745;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 2px;
+}
+
+.set-header-button:hover {
+  background-color: #e6ffed;
+}
+
+.metadata-row {
+  background-color: #f9f9f9;
+  color: #888;
+}
+
+.metadata-cell {
+  font-style: italic;
+  font-size: 0.85em;
+  opacity: 0.7;
+}
+
+.skipped-row {
+  background-color: #f8f9fa; /* Light gray for skipped rows */
+  opacity: 0.6;
+}
+
+@media (prefers-color-scheme: dark) {
+  th {
+    background-color: #333;
+    color: white;
+  }
+
+  td {
+    border-color: #555;
+  }
+
+  .header-input {
+    background-color: #444;
+    color: white;
+    border-color: #555;
+  }
+
+  .refresh-button {
+    color: #ccc;
+  }
+
+  .refresh-button:hover {
+    color: #fff;
+  }
+
+  .response-sources {
+    color: #bbb;
+  }
+
+  .response-sources a {
+    color: #8ab4f8; /* Lighter blue for dark mode links */
+  }
+
+  .skip-column-header {
+    background-color: #333;
+  }
+
+  .metadata-row {
+    background-color: #2a2a2a;
+    color: #666;
+  }
+
+  .set-header-button:hover {
+    background-color: #162312;
+  }
+
+  .response-text.editable:hover {
+    background-color: #2c2c2c;
+  }
+
+  .skipped-row {
+    background-color: #444; /* Darker gray for skipped rows in dark mode */
+  }
+}

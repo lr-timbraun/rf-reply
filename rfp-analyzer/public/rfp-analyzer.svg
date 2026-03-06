@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Rounded Background -->
+  <rect width="128" height="128" rx="28" fill="#0077D4"/>
+  <!-- Document Shape -->
+  <path d="M40 30h40l18 18v50c0 5.5-4.5 10-10 10H40c-5.5 0-10-4.5-10-10V40c0-5.5 4.5-10 10-10z" fill="white"/>
+  <!-- Document Lines -->
+  <rect x="42" y="55" width="44" height="4" rx="2" fill="#0077D4"/>
+  <rect x="42" y="70" width="44" height="4" rx="2" fill="#0077D4"/>
+  <rect x="42" y="85" width="24" height="4" rx="2" fill="#0077D4"/>
+  <!-- AI Sparkles -->
+  <path d="M95 25l2 8 8 2-8 2-2 8-2-8-8-2 8-2 2-8z" fill="#FFD700"/>
+  <path d="M110 45l1.5 6 6 1.5-6 1.5-1.5 6-1.5-6-6-1.5 6-1.5 1.5-6z" fill="#FFD700"/>
+</svg>
