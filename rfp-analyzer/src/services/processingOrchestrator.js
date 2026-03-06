@@ -1,4 +1,5 @@
 import { constructCompressedRowPrompt, thinHistoryResponse } from '../utils/promptUtils';
+import { loggerService } from './loggerService';
 
 /**
  * Orchestrates the processing of a single RFP row.
@@ -23,6 +24,9 @@ export const processingOrchestrator = {
 
     // 1. Prepare the unified prompt
     const prompt = constructCompressedRowPrompt(activeCols, headers, row.values);
+    
+    // Log the prompt for debugging
+    loggerService.debugLog('ROW_UNIFIED_PROMPT', prompt);
 
     // 2. Call AI Service
     const { data: aiData } = await aiService.generateRowResponse(

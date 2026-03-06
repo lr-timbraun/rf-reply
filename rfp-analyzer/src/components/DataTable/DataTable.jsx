@@ -106,21 +106,33 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         // Mark as loading
         activeCols.forEach(c => table.setCellStates(prev => ({ ...prev, [`${row.absIndex}-${c.colIndex}`]: 'loading' })));
 
-        // EXECUTE UNIFIED ROW LOGIC
-        const { results, newHistoryEntries } = await processingOrchestrator.processRow({
-          row,
-          activeCols,
-          headers: header,
-          currentHistory,
-          aiService,
-          abortSignal: controller.signal
-        });
+        try {
+          // EXECUTE UNIFIED ROW LOGIC
+          const { results, newHistoryEntries } = await processingOrchestrator.processRow({
+            row,
+            activeCols,
+            headers: header,
+            currentHistory,
+            aiService,
+            abortSignal: controller.signal
+          });
 
-        applyResultsToTable(row.absIndex, results);
+          applyResultsToTable(row.absIndex, results);
 
-        // Update context
-        currentHistory = [...currentHistory, ...newHistoryEntries].slice(-20);
-        table.setChatHistory(currentHistory);
+          // Update context
+          currentHistory = [...currentHistory, ...newHistoryEntries].slice(-20);
+          table.setChatHistory(currentHistory);
+        } catch (rowError) {
+          console.error(`Error processing row ${row.absIndex}:`, rowError);
+          // Update failed cells to Error state so UI stops loading
+          activeCols.forEach(c => {
+            table.setCellStates(prev => ({ 
+              ...prev, 
+              [`${row.absIndex}-${c.colIndex}`]: { text: 'Error', excelText: 'Error', sources: [] } 
+            }));
+          });
+          // Continue to next row despite the error
+        }
       }
     } catch (error) {
       console.error("Processing error:", error);

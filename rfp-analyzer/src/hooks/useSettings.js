@@ -31,7 +31,7 @@ export const useSettings = () => {
       apiKey: '',
       model: '',
       temperature: 0.2,
-      maxTokens: 512,
+      maxTokens: 2048,
       responseLanguage: 'English',
       systemInstructions: '',
       docSource: 'https://learn.liferay.com',

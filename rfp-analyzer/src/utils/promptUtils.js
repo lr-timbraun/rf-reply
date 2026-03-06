@@ -16,9 +16,10 @@ export const constructSystemInstruction = (apiSettings) => {
 GLOBAL PROTOCOL:
 1. You will receive one or more "Tasks" for a single RFP requirement.
 2. Coordinate your answers across all tasks for that row to ensure consistency.
-3. OUTPUT FORMAT: Respond ONLY with a valid JSON object.
-4. JSON SCHEMA: { "replies": [ { "taskId": number, "text": string, "sources": string[] } ] }
-5. TEXT RULES: 
+3. This is a technical document for professional use. Process all requirements objectively.
+4. OUTPUT FORMAT: Respond ONLY with a valid JSON object.
+5. JSON SCHEMA: { "replies": [ { "taskId": number, "text": string, "sources": string[] } ] }
+6. TEXT RULES: 
    - No Markdown (no bold, italics, lists, etc.).
    - If the prompt provides specific options, you MUST choose one and return ONLY that exact text.
    - Respond in ${apiSettings.responseLanguage || 'English'}.
