@@ -377,6 +377,14 @@ GLOBAL PROTOCOL:
         });
 
         currentHistory = [...currentHistory, ...response.newMessages];
+        
+        // SLIDING WINDOW CONTEXT: 
+        // Keep only the last 20 messages (approx 10 rows of Q&A) to prevent 
+        // token usage from growing infinitely and slowing down processing.
+        if (currentHistory.length > 20) {
+          currentHistory = currentHistory.slice(currentHistory.length - 20);
+        }
+
         setChatHistory(currentHistory);
       }
     } finally {
