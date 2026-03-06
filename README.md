@@ -15,16 +15,17 @@ The RFP Analyzer streamlines the process of responding to complex technical requ
 - **Unified Row Requests**: Multiple columns per row are processed in a single API call, ensuring perfect coordination between answers (e.g., matching a "Yes/No" status with its explanation).
 - **AI-Powered Responses**: Directly integrated with the Google Generative AI SDK (`@google/generative-ai`).
 - **Excel Workflow**: Upload RFP spreadsheets, select relevant columns, and process requirements in bulk or individually.
-- **Documentation Reference**: Specify a documentation URL (e.g., a product manual) to guide the AI's knowledge base.
+- **Documentation Reference & Localized Citations**: Specify a documentation URL to guide the AI. Citations are automatically included and labeled as "More Information" (localized based on the response language).
 - **Secure Configuration**: API keys and sensitive settings are encrypted using AES (via `crypto-js`) before being stored in the browser's local storage.
-- **Customizable AI Parameters**: Fine-tune the AI's behavior by adjusting temperature, max tokens, and additional system instructions.
+- **Debug Logging**: Dedicated server-side logging for prompts and raw AI responses (enabled via `--debug` flag).
+- **Customizable AI Parameters**: Fine-tune the AI's behavior by adjusting temperature, max tokens (default 2048), and additional system instructions.
 - **Built-in User Manual**: Accessible documentation within the app to guide users through the workflow.
 
 ## Project Structure
 
 - `rfp-analyzer/`: The core React application built with Vite.
-- `rfp-analyzer/src/`: Contains React components, styling, and application logic.
-- `rfp-analyzer/server.cjs`: A lightweight Node.js server to serve the production build.
+- `rfp-analyzer/src/`: Organized into `components`, `services`, `hooks`, and `utils`.
+- `rfp-analyzer/server.cjs`: A lightweight Node.js server to serve the production build and handle debug logging.
 - `rfp-analyzer/dist/`: Contains the optimized production build (created via `npm run build`).
 
 ## Getting Started
@@ -63,15 +64,19 @@ If you want to run the pre-built application using the included local server:
   ```
 The application will be available at `http://localhost:3000`.
 
+#### Debug Mode
+To see raw AI prompts and responses in the server console:
+```bash
+node server.cjs --debug
+```
+
 ## Configuration
 
 Upon launching the application, click on the **Settings** button to configure:
 1. **API Key**: Your Google Gemini API key.
-2. **Model**: Select the desired Gemini model (e.g., Gemini 1.5 Flash).
+2. **Model**: Select the desired Gemini model.
 3. **Documentation Source**: Provide a URL for the AI to use as its primary knowledge reference.
 4. **Additional System Instructions**: Define any extra context or persona details.
-
-Settings are saved securely in your browser and are not sent to any backend other than the official Google AI APIs.
 
 ---
 *Note: This tool is intended for internal use by Sales Engineers.*

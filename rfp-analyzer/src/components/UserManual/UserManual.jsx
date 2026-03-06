@@ -22,7 +22,7 @@ const UserManual = ({ onBack }) => {
             <li>Enter your <strong>Gemini API Key</strong> and click <strong>Test Connection</strong>.</li>
             <li>Select your preferred <strong>Model</strong>.</li>
             <li>Set a <strong>Documentation Source</strong> URL (e.g., your product's official help site) to give the AI a specific knowledge base.</li>
-            <li>Adjust the <strong>Temperature</strong> (0.2 is recommended for professional replies).</li>
+            <li>Adjust the <strong>Temperature</strong> (0.2 is recommended for professional replies) and <strong>Max Tokens</strong> (default is 2048 for ample headroom).</li>
             <li>Click <strong>Save Settings</strong> to store your configuration securely (AES-encrypted in your browser).</li>
           </ul>
         </section>
@@ -62,7 +62,7 @@ const UserManual = ({ onBack }) => {
           <ul>
             <li><strong>Strict Options:</strong> If you need the AI to pick from a list (e.g., "Yes", "No", "Partial"), include those options in your prompt.</li>
             <li><strong>No Markdown:</strong> The AI is automatically instructed to avoid bold or italics for a clean Excel look.</li>
-            <li><strong>Sources:</strong> Citations are included for long answers but omitted for short "option-based" answers to prevent Excel validation errors.</li>
+            <li><strong>Localized Citations:</strong> Citations are included for long answers and labeled as "More Information" (localized into your target language). They are omitted for short "option-based" answers to prevent Excel validation errors.</li>
           </ul>
         </section>
       </main>
