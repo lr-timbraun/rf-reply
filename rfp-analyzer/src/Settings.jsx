@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import './Settings.css';
 
+const InfoIcon = ({ onClick }) => (
+  <button 
+    className="info-icon" 
+    onClick={onClick} 
+    title="Show full System Instructions"
+    aria-label="Show full System Instructions"
+  >
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+      <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+      <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+    </svg>
+  </button>
+);
+
 const Settings = ({ initialSettings, onSave, onBack }) => {
   const [apiKey, setApiKey] = useState(initialSettings.apiKey);
   const [model, setModel] = useState(initialSettings.model);
@@ -8,10 +22,12 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
   const [maxTokens, setMaxTokens] = useState(initialSettings.maxTokens);
   const [responseLanguage, setResponseLanguage] = useState(initialSettings.responseLanguage || 'English');
   const [systemInstructions, setSystemInstructions] = useState(initialSettings.systemInstructions);
+  const [docSource, setDocSource] = useState(initialSettings.docSource || '');
 
   const [availableModels, setAvailableModels] = useState([]);
   const [isConnectionSuccessful, setIsConnectionSuccessful] = useState(!!initialSettings.apiKey);
   const [testStatus, setTestStatus] = useState(null);
+  const [showFullInstructions, setShowFullInstructions] = useState(false);
 
   const languages = [
     'Afrikaans', 'Albanian', 'Amharic', 'Arabic', 'Armenian', 'Azerbaijani', 'Basque', 'Belarusian', 'Bengali', 'Bosnian',
@@ -76,7 +92,7 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
   };
 
   const handleSave = () => {
-    onSave({ apiKey, model, temperature, maxTokens, responseLanguage, systemInstructions });
+    onSave({ apiKey, model, temperature, maxTokens, responseLanguage, systemInstructions, docSource });
   };
 
   const getTemperatureDescription = (temp) => {
@@ -84,6 +100,12 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
     if (temp <= 0.5) return 'Balanced';
     if (temp <= 0.8) return 'Creative';
     return 'Very Creative';
+  };
+
+  const getFullSystemInstructions = () => {
+    const docContext = docSource ? ` Use only the latest official documentation available at ${docSource} for replying to these prompts.` : '';
+    const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
+    return `${baseInstruction}${systemInstructions}${docContext} Respond in ${responseLanguage || 'English'}.`;
   };
 
   return (
@@ -117,12 +139,25 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
 
           <fieldset disabled={!isConnectionSuccessful} className="settings-fieldset">
             <div className="form-group">
-              <label htmlFor="system-instructions">System Instructions</label>
+              <div className="label-with-info">
+                <label htmlFor="system-instructions">Additional System Instructions</label>
+                <InfoIcon onClick={() => setShowFullInstructions(true)} />
+              </div>
               <textarea
                 id="system-instructions"
                 rows="4"
                 value={systemInstructions}
                 onChange={(e) => setSystemInstructions(e.target.value)}
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="doc-source">Documentation Source (URL)</label>
+              <input
+                type="text"
+                id="doc-source"
+                placeholder="e.g., https://learn.liferay.com"
+                value={docSource}
+                onChange={(e) => setDocSource(e.target.value)}
               />
             </div>
             <div className="form-group">
@@ -184,6 +219,26 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
           </div>
         </div>
       </main>
+
+      {showFullInstructions && (
+        <div className="modal-overlay" onClick={() => setShowFullInstructions(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Full System Instructions</h2>
+              <button className="close-button" onClick={() => setShowFullInstructions(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p>This is the complete system instruction sent to the Gemini API:</p>
+              <pre className="full-instructions-preview">
+                {getFullSystemInstructions()}
+              </pre>
+              <small className="modal-note">
+                Note: The app also appends formatting rules and option handling instructions directly to each individual prompt.
+              </small>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

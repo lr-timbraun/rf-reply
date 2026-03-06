@@ -41,9 +41,10 @@ function App() {
       apiKey: '',
       model: '',
       temperature: 0.2,
-      maxTokens: 1024,
+      maxTokens: 512,
       responseLanguage: 'English',
-      systemInstructions: 'You are a Sales Engineer for Liferay replying to an RFP. Use only the latest information available at https://www.learn.liferay.com for replying to these prompts.',
+      systemInstructions: '',
+      docSource: 'https://learn.liferay.com',
     };
   });
 
@@ -71,37 +72,36 @@ function App() {
     }
   };
 
-  const renderPage = () => {
-    switch (page) {
-      case 'settings':
-        return (
-          <Settings
-            initialSettings={apiSettings}
-            onSave={handleSaveSettings}
-            onBack={navigateToMain}
-          />
-        );
-      case 'help':
-        return <UserManual onBack={navigateToMain} />;
-      default:
-        return (
-          <div className="App">
-            <header className="App-header">
-              <h1>RFP Analyzer</h1>
-              <div className="header-actions">
-                <button onClick={navigateToHelp} className="help-button">Help</button>
-                <button onClick={navigateToSettings} className="settings-button">Settings</button>
-              </div>
-            </header>
-            <main>
-              <ExcelUploader apiSettings={apiSettings} />
-            </main>
-          </div>
-        );
-    }
-  };
+  return (
+    <>
+      <div style={{ display: page === 'main' ? 'block' : 'none' }}>
+        <div className="App">
+          <header className="App-header">
+            <h1>RFP Analyzer</h1>
+            <div className="header-actions">
+              <button onClick={navigateToHelp} className="help-button">Help</button>
+              <button onClick={navigateToSettings} className="settings-button">Settings</button>
+            </div>
+          </header>
+          <main>
+            <ExcelUploader apiSettings={apiSettings} />
+          </main>
+        </div>
+      </div>
 
-  return <>{renderPage()}</>;
+      {page === 'settings' && (
+        <Settings
+          initialSettings={apiSettings}
+          onSave={handleSaveSettings}
+          onBack={navigateToMain}
+        />
+      )}
+
+      {page === 'help' && (
+        <UserManual onBack={navigateToMain} />
+      )}
+    </>
+  );
 }
 
 export default App;

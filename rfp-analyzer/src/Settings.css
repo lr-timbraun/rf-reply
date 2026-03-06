@@ -142,6 +142,111 @@
   margin-left: 5px;
 }
 
+/* New Info Icon & Modal Styles */
+.label-with-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.label-with-info label {
+  margin-bottom: 0 !important;
+}
+
+.info-icon {
+  background: none;
+  border: none;
+  color: #0077D4;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.info-icon:hover {
+  color: #0056b3;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.modal-content {
+  background-color: white;
+  padding: 0;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  line-height: 1;
+  color: #999;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.full-instructions-preview {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 4px;
+  border: 1px solid #e9ecef;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.9rem;
+  color: #333;
+  margin: 15px 0;
+  text-align: left;
+}
+
+.modal-note {
+  color: #666;
+  font-style: italic;
+  display: block;
+}
+
 @media (prefers-color-scheme: dark) {
   .form-group input,
   .form-group select,
@@ -155,5 +260,36 @@
   }
   .temp-description {
     color: #aaa;
+  }
+
+  .info-icon {
+    color: #61dafb;
+  }
+
+  .modal-content {
+    background-color: #2a2a2a;
+    color: white;
+  }
+
+  .modal-header {
+    border-bottom-color: #444;
+  }
+
+  .modal-header h2 {
+    color: white;
+  }
+
+  .full-instructions-preview {
+    background-color: #1e1e1e;
+    border-color: #444;
+    color: #ddd;
+  }
+
+  .modal-note {
+    color: #aaa;
+  }
+
+  .close-button:hover {
+    color: white;
   }
 }

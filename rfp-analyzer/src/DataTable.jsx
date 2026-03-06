@@ -194,36 +194,29 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     return translations[lang] || 'Sources';
   };
 
-  const generateResponseForCell = async (rowValues, colIndex, promptTemplate, history, signal) => {
-    if (!apiSettings.apiKey) {
-      alert('Please set your API key in the settings.');
-      return { text: 'Error: API Key Missing', sources: [], updatedHistory: history };
-    }
-
-    const genAI = new GoogleGenerativeAI(apiSettings.apiKey);
-    const model = genAI.getGenerativeModel({
-      model: apiSettings.model,
-      systemInstruction: `${apiSettings.systemInstructions} Respond in ${apiSettings.responseLanguage || 'English'}.`,
-    });
-
+  const generateResponseForRow = async (model, rowValues, activeCols, history, signal) => {
     const generationConfig = {
       temperature: apiSettings.temperature,
       maxOutputTokens: apiSettings.maxTokens,
+      responseMimeType: "application/json",
     };
 
-    let prompt = promptTemplate;
+    // Prepare the unified prompt
+    let unifiedPrompt = "For this specific RFP requirement, please perform the following tasks and provide a coordinated response:\n\n";
     
-    // Always append generic instruction regarding potential reply options and formatting
-    prompt += "\n\nIMPORTANT: If I have provided you with a specific set of reply options, you MUST respond ONLY with the exact text of the chosen option. In this case, do not add any explanations, headers, or sources. If no specific options are provided, you may reply with a full detailed answer. In all cases, do NOT use Markdown formatting (no bold, italics, lists, etc.) in your response.";
-
-    header.forEach((h, i) => {
-      if (!h) return;
-      // Escape special characters for regex to prevent breakage if header has parens, etc.
-      const escapedHeader = h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const placeholder = new RegExp(`\\{${escapedHeader}\\}`, 'g');
-      const value = rowValues[i] !== null && rowValues[i] !== undefined ? rowValues[i] : '';
-      prompt = prompt.replace(placeholder, value);
+    activeCols.forEach((col, index) => {
+      let cellPrompt = col.promptTemplate;
+      header.forEach((h, i) => {
+        if (!h) return;
+        const escapedHeader = h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const placeholder = new RegExp(`\\{${escapedHeader}\\}`, 'g');
+        const value = rowValues[i] !== null && rowValues[i] !== undefined ? rowValues[i] : '';
+        cellPrompt = cellPrompt.replace(placeholder, value);
+      });
+      unifiedPrompt += `Task ID ${index} (Target Column: ${header[col.colIndex] || col.colIndex}):\n${cellPrompt}\n\n`;
     });
+
+    unifiedPrompt += "IMPORTANT: Respond ONLY with a JSON object. Ensure the 'text' for each reply follows these rules: If specific options were provided, use ONLY the chosen option text. Do NOT use Markdown formatting (no bold, italics, etc.).\n\nReturn the following JSON structure:\n{\n  \"replies\": [\n    { \"taskId\": 0, \"text\": \"...\", \"sources\": [\"url1\", \"url2\"] },\n    ...\n  ]\n}";
 
     try {
       const chat = model.startChat({
@@ -231,7 +224,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         generationConfig,
       });
 
-      const resultPromise = chat.sendMessage(prompt);
+      const resultPromise = chat.sendMessage(unifiedPrompt);
       
       const response = await Promise.race([
         resultPromise,
@@ -242,48 +235,57 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         })
       ]);
 
-      let text = response.response.text().trim();
-      const citationMetadata = response.response.candidates && response.response.candidates[0] ? response.response.candidates[0].citationMetadata : null;
-
-      let sources = [];
-      if (citationMetadata && citationMetadata.citationSources) {
-        sources = citationMetadata.citationSources.map(citation => ({
-          uri: citation.uri,
-          title: citation.uri
-        }));
+      const rawText = response.response.text().trim();
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(rawText);
+      } catch (e) {
+        console.error("JSON Parsing Error. Raw output:", rawText);
+        throw new Error("AI failed to return valid JSON.");
       }
 
-      // Update history
-      const updatedHistory = [
-        ...history,
-        { role: 'user', parts: [{ text: prompt }] },
-        { role: 'model', parts: [{ text: text }] }
+      const results = activeCols.map((col, index) => {
+        const reply = parsedResponse.replies.find(r => r.taskId === index) || { text: 'Error: No reply for task', sources: [] };
+        
+        let text = reply.text;
+        let sources = Array.isArray(reply.sources) ? reply.sources.map(s => ({ uri: s, title: s })) : [];
+
+        let finalTextForExcel = text;
+        if (text.length > 25 && sources.length > 0) {
+          const sourcesLabel = getSourcesLabel(apiSettings.responseLanguage || 'English');
+          const sourcesList = sources.map(s => s.uri).join('\n');
+          finalTextForExcel = `${text}\n\n${sourcesLabel}:\n${sourcesList}`;
+        }
+
+        return {
+          colIndex: col.colIndex,
+          text: text,
+          excelText: finalTextForExcel,
+          sources: sources
+        };
+      });
+
+      const newMessages = [
+        { role: 'user', parts: [{ text: unifiedPrompt }] },
+        { role: 'model', parts: [{ text: rawText }] }
       ];
 
-      // Formulate the text for the Excel sheet.
-      let finalTextForExcel = text;
-      if (text.length > 25 && sources.length > 0) {
-        const sourcesLabel = getSourcesLabel(apiSettings.responseLanguage || 'English');
-        const sourcesList = sources.map(s => s.uri).join('\n');
-        finalTextForExcel = `${text}\n\n${sourcesLabel}:\n${sourcesList}`;
-      }
-
-      return { 
-        text: text, 
-        excelText: finalTextForExcel,
-        sources: sources,
-        updatedHistory
-      };
+      return { results, newMessages };
     } catch (error) {
       if (error.message === 'Aborted') {
-        return { text: 'Cancelled', excelText: 'Cancelled', sources: [], updatedHistory: history };
+        return { results: activeCols.map(c => ({ colIndex: c.colIndex, text: 'Cancelled', excelText: 'Cancelled', sources: [] })), newMessages: [] };
       }
       console.error('API Error:', error);
-      return { text: 'Error', excelText: 'Error', sources: [], updatedHistory: history };
+      return { results: activeCols.map(c => ({ colIndex: c.colIndex, text: 'Error', excelText: 'Error', sources: [] })), newMessages: [] };
     }
   };
 
   const handleGoClick = async () => {
+    if (!apiSettings.apiKey) {
+      alert('Please set your API key in the settings.');
+      return;
+    }
+
     setIsProcessing(true);
     const controller = new AbortController();
     setAbortController(controller);
@@ -291,53 +293,65 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     let currentHistory = [...chatHistory];
 
     try {
-      // Collect all tasks that need processing
-      const tasks = [];
-      for (let colIndex = 0; colIndex < inputValues.length; colIndex++) {
-        const promptTemplate = inputValues[colIndex];
-        if (!promptTemplate) continue;
+      const genAI = new GoogleGenerativeAI(apiSettings.apiKey);
+      const docContext = apiSettings.docSource ? ` Use only the latest official documentation available at ${apiSettings.docSource} for replying to these prompts.` : '';
+      const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
+      const model = genAI.getGenerativeModel({
+        model: apiSettings.model,
+        systemInstruction: `${baseInstruction}${apiSettings.systemInstructions}${docContext} Respond in ${apiSettings.responseLanguage || 'English'}.`,
+      });
 
-        for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
-          const absIndex = dataRows[rowIndex].absIndex;
-          if (skippedRows.has(absIndex)) {
-            setCellStates(prev => ({ ...prev, [`${absIndex}-${colIndex}`]: 'Skipped' }));
-            continue;
-          }
-          tasks.push({ rowIndex, colIndex, absIndex, promptTemplate });
-        }
-      }
-
-      // Process tasks SEQUENTIALLY to maintain conversation context
-      for (let i = 0; i < tasks.length; i++) {
+      for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
         if (controller.signal.aborted) break;
 
-        const task = tasks[i];
-        
-        // Mark current cell as loading
-        setCellStates(prev => ({
-          ...prev,
-          [`${task.absIndex}-${task.colIndex}`]: 'loading'
-        }));
+        const row = dataRows[rowIndex];
+        const absIndex = row.absIndex;
 
-        const response = await generateResponseForCell(
-          dataRows[task.rowIndex].values, 
-          task.colIndex, 
-          task.promptTemplate, 
+        if (skippedRows.has(absIndex)) {
+          inputValues.forEach((val, colIndex) => {
+            if (val) setCellStates(prev => ({ ...prev, [`${absIndex}-${colIndex}`]: 'Skipped' }));
+          });
+          continue;
+        }
+
+        const activeCols = [];
+        inputValues.forEach((val, colIndex) => {
+          if (val) activeCols.push({ colIndex, promptTemplate: val });
+        });
+
+        if (activeCols.length === 0) continue;
+
+        setCellStates(prev => {
+          const newState = { ...prev };
+          activeCols.forEach(c => {
+            newState[`${absIndex}-${c.colIndex}`] = 'loading';
+          });
+          return newState;
+        });
+
+        const response = await generateResponseForRow(
+          model,
+          row.values,
+          activeCols,
           currentHistory,
           controller.signal
         );
 
-        if (!controller.signal.aborted) {
-          currentHistory = response.updatedHistory;
-          setChatHistory(currentHistory);
+        if (controller.signal.aborted) break;
+
+        response.results.forEach(res => {
           setCellStates(prev => ({ 
             ...prev, 
-            [`${task.absIndex}-${task.colIndex}`]: response 
+            [`${absIndex}-${res.colIndex}`]: res 
           }));
+
           if (onCellUpdate) {
-            onCellUpdate(task.absIndex, task.colIndex + colOffset, response.excelText);
+            onCellUpdate(absIndex, res.colIndex + colOffset, res.excelText);
           }
-        }
+        });
+
+        currentHistory = [...currentHistory, ...response.newMessages];
+        setChatHistory(currentHistory);
       }
     } finally {
       setIsProcessing(false);
@@ -347,21 +361,35 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
 
   const handleRefreshClick = async (rowIndex, colIndex) => {
     const absIndex = dataRows[rowIndex].absIndex;
-    if (skippedRows.has(absIndex)) {
-      setCellStates(prev => ({ ...prev, [`${absIndex}-${colIndex}`]: 'Skipped' }));
-      return;
-    }
+    if (skippedRows.has(absIndex)) return;
     const promptTemplate = inputValues[colIndex];
     if (!promptTemplate) return;
 
+    if (!apiSettings.apiKey) {
+      alert('Please set your API key in the settings.');
+      return;
+    }
+
     const cellKey = `${absIndex}-${colIndex}`;
     setCellStates(prev => ({ ...prev, [cellKey]: 'loading' }));
-    // For refresh, we use the current history as is
-    const response = await generateResponseForCell(dataRows[rowIndex].values, colIndex, promptTemplate, chatHistory);
-    setCellStates(prev => ({ ...prev, [cellKey]: response }));
-    setChatHistory(response.updatedHistory);
-    if (onCellUpdate) {
-      onCellUpdate(absIndex, colIndex + colOffset, response.excelText);
+
+    const genAI = new GoogleGenerativeAI(apiSettings.apiKey);
+    const docContext = apiSettings.docSource ? ` Use only the latest official documentation available at ${apiSettings.docSource} for replying to these prompts.` : '';
+    const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
+    const model = genAI.getGenerativeModel({
+      model: apiSettings.model,
+      systemInstruction: `${baseInstruction}${apiSettings.systemInstructions}${docContext} Respond in ${apiSettings.responseLanguage || 'English'}.`,
+    });
+
+    const response = await generateResponseForRow(model, dataRows[rowIndex].values, [{ colIndex, promptTemplate }], chatHistory);
+    
+    if (response.results.length > 0) {
+      const res = response.results[0];
+      setCellStates(prev => ({ ...prev, [cellKey]: res }));
+      setChatHistory([...chatHistory, ...response.newMessages]);
+      if (onCellUpdate) {
+        onCellUpdate(absIndex, colIndex + colOffset, res.excelText);
+      }
     }
   };
 
@@ -391,7 +419,6 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
   }
 
   // Determine metadata rows to display (everything before headerRowIndex)
-  // We use the same colOffset and maxCols logic to keep them aligned with data columns
   const metadataRows = data.slice(0, headerRowIndex).map(row => {
     const denseRow = [];
     const rowValues = row.values || [];
