@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef } from 'react';
 import { createAIService } from '../../services/aiService';
 import { processingOrchestrator } from '../../services/processingOrchestrator';
 import { useRFPTable } from '../../hooks/useRFPTable';
+import { getMoreInfoLabel } from '../../utils/promptUtils';
 import ResponseCell from './ResponseCell';
 import './DataTable.css';
 
@@ -51,6 +52,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
 
   const table = useRFPTable(header.length);
   const aiService = useMemo(() => createAIService(apiSettings), [apiSettings]);
+  const moreInfoLabel = useMemo(() => getMoreInfoLabel(apiSettings.responseLanguage), [apiSettings.responseLanguage]);
 
   const handleCellSave = (absIndex, colIndex, newValue) => {
     const cellKey = `${absIndex}-${colIndex}`;
@@ -103,35 +105,30 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         const activeCols = table.getActiveCols();
         if (activeCols.length === 0) continue;
 
-        // Mark as loading
         activeCols.forEach(c => table.setCellStates(prev => ({ ...prev, [`${row.absIndex}-${c.colIndex}`]: 'loading' })));
 
         try {
-          // EXECUTE UNIFIED ROW LOGIC
           const { results, newHistoryEntries } = await processingOrchestrator.processRow({
             row,
             activeCols,
             headers: header,
             currentHistory,
             aiService,
+            responseLanguage: apiSettings.responseLanguage,
             abortSignal: controller.signal
           });
 
           applyResultsToTable(row.absIndex, results);
-
-          // Update context
           currentHistory = [...currentHistory, ...newHistoryEntries].slice(-20);
           table.setChatHistory(currentHistory);
         } catch (rowError) {
           console.error(`Error processing row ${row.absIndex}:`, rowError);
-          // Update failed cells to Error state so UI stops loading
           activeCols.forEach(c => {
             table.setCellStates(prev => ({ 
               ...prev, 
               [`${row.absIndex}-${c.colIndex}`]: { text: 'Error', excelText: 'Error', sources: [] } 
             }));
           });
-          // Continue to next row despite the error
         }
       }
     } catch (error) {
@@ -150,17 +147,16 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
 
     try {
       const activeCols = [{ colIndex, promptTemplate: table.inputValues[colIndex] }];
-      
       const { results, newHistoryEntries } = await processingOrchestrator.processRow({
         row,
         activeCols,
         headers: header,
         currentHistory: table.chatHistory,
-        aiService
+        aiService,
+        responseLanguage: apiSettings.responseLanguage
       });
 
       applyResultsToTable(row.absIndex, results);
-      
       const nextHistory = [...table.chatHistory, ...newHistoryEntries].slice(-20);
       table.setChatHistory(nextHistory);
     } catch (e) {
@@ -181,12 +177,28 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
   return (
     <div className="table-container">
       <div className="table-header-row">
-        <h2>{tabName}</h2>
+        <div className="table-title-group">
+          <h2>{tabName}</h2>
+          <button className="reset-button" onClick={() => table.setChatHistory([])} title="Clear conversation history for this tab">Reset History</button>
+        </div>
+        
         <div className="table-header-actions">
-          <button className="reset-button" onClick={() => table.setChatHistory([])}>Reset History</button>
-          {table.isProcessing && <button className="stop-button" onClick={() => table.abortController?.abort()}>Stop Processing</button>}
+          <button onClick={onCancel} className="cancel-button">Cancel</button>
+          
+          <div className="action-button-group">
+            {table.isProcessing ? (
+              <button className="stop-button" onClick={() => table.abortController?.abort()}>Stop Processing</button>
+            ) : (
+              <button onClick={handleGoClick} className="go-button">Go!</button>
+            )}
+            
+            <button onClick={onNext} className="next-button">
+              {isLastTab ? 'Finish' : 'Next Tab'}
+            </button>
+          </div>
         </div>
       </div>
+
       <table>
         <thead>
           <tr>
@@ -203,6 +215,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
                   ref={(el) => (inputRefs.current[index] = el)}
                   className="header-input"
                   rows="3"
+                  placeholder="Enter prompt..."
                   value={table.inputValues[index]}
                   onChange={(e) => {
                     const next = [...table.inputValues];
@@ -246,6 +259,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
                   cellState={table.cellStates[`${row.absIndex}-${cellIndex}`]}
                   initialValue={cell}
                   isProcessing={table.isProcessing}
+                  moreInfoLabel={moreInfoLabel}
                   onSave={(val) => handleCellSave(row.absIndex, cellIndex, val)}
                   onRefresh={() => handleRefreshClick(rowIndex, cellIndex)}
                 />
@@ -254,13 +268,6 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
           ))}
         </tbody>
       </table>
-      <div className="table-actions">
-        <button onClick={onCancel} className="cancel-button">Cancel</button>
-        <div>
-          <button onClick={handleGoClick} className="go-button">Go!</button>
-          <button onClick={onNext}>{isLastTab ? 'Finish' : 'Next'}</button>
-        </div>
-      </div>
     </div>
   );
 };

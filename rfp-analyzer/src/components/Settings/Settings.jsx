@@ -227,9 +227,6 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
               <pre className="full-instructions-preview">
                 {constructSystemInstruction({ systemInstructions, docSource, responseLanguage })}
               </pre>
-              <small className="modal-note">
-                Note: The app also appends formatting rules and option handling instructions directly to each individual prompt.
-              </small>
             </div>
           </div>
         </div>

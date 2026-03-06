@@ -8,6 +8,7 @@ const ResponseCell = ({
   cellKey, 
   cellState, 
   initialValue, 
+  moreInfoLabel,
   onSave, 
   onRefresh, 
   isProcessing 
@@ -77,12 +78,12 @@ const ResponseCell = ({
 
       {cellState?.sources?.length > 0 && (
         <div className="response-sources">
-          <strong>Sources:</strong>
+          <strong>{moreInfoLabel}:</strong>
           <ul>
             {cellState.sources.map((s, i) => (
               <li key={i}>
                 <a href={s.uri} target="_blank" rel="noopener noreferrer">
-                  {s.title || s.uri}
+                  {s.uri}
                 </a>
               </li>
             ))}

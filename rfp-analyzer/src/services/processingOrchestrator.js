@@ -1,4 +1,4 @@
-import { constructCompressedRowPrompt, thinHistoryResponse } from '../utils/promptUtils';
+import { constructCompressedRowPrompt, thinHistoryResponse, getMoreInfoLabel } from '../utils/promptUtils';
 import { loggerService } from './loggerService';
 
 /**
@@ -18,6 +18,7 @@ export const processingOrchestrator = {
     headers,
     currentHistory,
     aiService,
+    responseLanguage,
     abortSignal
   }) => {
     if (!aiService) throw new Error('AI Service not initialized');
@@ -47,7 +48,8 @@ export const processingOrchestrator = {
       // Format the text specifically for the Excel workbook
       let excelText = reply.text;
       if (reply.text.length > 25 && sources.length > 0) {
-        excelText = `${reply.text}\n\nSources:\n${sources.map(s => s.uri).join('\n')}`;
+        const label = getMoreInfoLabel(responseLanguage);
+        excelText = `${reply.text}\n\n${label}:\n${sources.map(s => s.uri).join('\n')}`;
       }
 
       return {
