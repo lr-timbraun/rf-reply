@@ -151,6 +151,30 @@ th {
   justify-content: space-between;
   align-items: flex-start;
   gap: 5px;
+  min-height: 24px; /* Ensure space for spinner */
+}
+
+/* Spinner Animation */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(0, 119, 212, 0.1);
+  border-left-color: #0077D4;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin: 2px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-color-scheme: dark) {
+  .spinner {
+    border-color: rgba(97, 218, 251, 0.1);
+    border-left-color: #61dafb;
+  }
 }
 
 .response-text {

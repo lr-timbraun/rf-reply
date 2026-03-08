@@ -1,6 +1,7 @@
 /**
  * Utility for constructing and managing AI prompts and system instructions.
  */
+
 /**
  * Returns the translated label for 'More Information' based on the language.
  */
@@ -24,15 +25,18 @@ export const getMoreInfoLabel = (lang) => {
 
 /**
  * Constructs the global system instruction for the AI.
-...
- * Includes the persona, user instructions, documentation context, and global protocols.
  */
 export const constructSystemInstruction = (apiSettings) => {
   const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
-  const docContext = apiSettings.docSource 
+  const docSource = apiSettings.docSource 
     ? ` Your primary knowledge base is located at ${apiSettings.docSource}. You MUST attempt to find specific, direct URLs from this domain to support every answer you provide.` 
     : '';
   
+  const responseLanguage = apiSettings.responseLanguage || 'English';
+  const languageFallback = responseLanguage !== 'English' 
+    ? `\n   - If a documentation source is not available in ${responseLanguage}, use the English version of the source instead.`
+    : '';
+
   const protocolRules = `
 GLOBAL PROTOCOL:
 1. You will receive one or more "Tasks" for a single RFP requirement.
@@ -54,10 +58,10 @@ GLOBAL PROTOCOL:
    - No Markdown (no bold, italics, lists, etc.).
    - If the prompt provides specific options, you MUST choose one and return ONLY that exact text for the "text" field. In this case, "sources" may be empty if no specific documentation is needed for a simple option selection.
    - For descriptive answers, you MUST populate the "sources" array with at least one valid URL from the documentation source that confirms your answer.
-   - Respond in ${apiSettings.responseLanguage || 'English'}.
+   - Respond in ${responseLanguage}.${languageFallback}
 `;
 
-  return `${baseInstruction}${apiSettings.systemInstructions || ''}${docContext}${protocolRules}`;
+  return `${baseInstruction}${apiSettings.systemInstructions || ''}${docSource}${protocolRules}`;
 };
 
 /**
@@ -67,10 +71,8 @@ export const fillPromptTemplate = (template, headers, rowValues) => {
   let filledPrompt = template;
   headers.forEach((h, i) => {
     if (!h) return;
-    // Escape special characters for regex
     const escapedHeader = h.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const placeholder = new RegExp(`\\{${escapedHeader}\\}`, 'g');
-    // Row values are 0-indexed relative to the header array
     const value = rowValues[i] !== null && rowValues[i] !== undefined ? rowValues[i] : '';
     filledPrompt = filledPrompt.replace(placeholder, value);
   });
@@ -82,12 +84,10 @@ export const fillPromptTemplate = (template, headers, rowValues) => {
  */
 export const constructCompressedRowPrompt = (activeCols, headers, rowValues) => {
   let prompt = "Tasks for this requirement:\n";
-  
   activeCols.forEach((col, index) => {
     const filledTask = fillPromptTemplate(col.promptTemplate, headers, rowValues);
     prompt += `ID ${index}: ${filledTask}\n`;
   });
-  
   return prompt;
 };
 

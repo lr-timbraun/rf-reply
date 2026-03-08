@@ -16,12 +16,11 @@ const ResponseCell = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState('');
 
-  const displayContent = cellState === 'loading' 
-    ? '...' 
-    : (cellState?.text !== undefined ? cellState.text : initialValue);
+  const displayContent = cellState?.text !== undefined ? cellState.text : initialValue;
+  const isLoading = cellState === 'loading';
 
   const startEditing = () => {
-    if (isProcessing || cellState === 'loading') return;
+    if (isProcessing || isLoading) return;
     setEditValue(displayContent);
     setIsEditing(true);
   };
@@ -47,7 +46,9 @@ const ResponseCell = ({
   return (
     <td>
       <div className="response-cell-content">
-        {isEditing ? (
+        {isLoading ? (
+          <div className="spinner" title="AI is thinking..."></div>
+        ) : isEditing ? (
           <textarea
             className="inline-editor"
             autoFocus

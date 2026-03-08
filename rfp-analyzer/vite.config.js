@@ -11,5 +11,21 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-excel': ['exceljs'],
+          'vendor-ai': ['@google/generative-ai'],
+          'vendor-crypto': ['crypto-js'],
+        }
+      }
+    }
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/tests/setup.js',
   }
 })

@@ -69,21 +69,14 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
     const index = table.activeInputIndex;
     const currentVal = table.inputValues[index] || '';
     const cursorPos = table.cursorPositions[index] || 0;
-    
-    // Insert placeholder at cursor position
     const newVal = `${currentVal.substring(0, cursorPos)}${placeholder}${currentVal.substring(cursorPos)}`;
-    
     const newInputValues = [...table.inputValues];
     newInputValues[index] = newVal;
     table.setInputValues(newInputValues);
-
     const newCursorPos = cursorPos + placeholder.length;
-    
-    // We need to update the cursor position in state as well
     const newCursorPositions = [...table.cursorPositions];
     newCursorPositions[index] = newCursorPos;
     table.setCursorPositions(newCursorPositions);
-
     setTimeout(() => {
       const textarea = inputRefs.current[index];
       if (textarea) {
@@ -124,6 +117,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
             headers: header,
             currentHistory,
             aiService,
+            docSource: apiSettings.docSource,
             responseLanguage: apiSettings.responseLanguage,
             abortSignal: controller.signal
           });
@@ -163,6 +157,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
         headers: header,
         currentHistory: table.chatHistory,
         aiService,
+        docSource: apiSettings.docSource,
         responseLanguage: apiSettings.responseLanguage
       });
 
@@ -179,6 +174,7 @@ const DataTable = ({ tabName, data, apiSettings, onNext, onCancel, isLastTab, on
 
   const metadataRows = data.slice(0, headerRowIndex).map(row => {
     const denseRow = [];
+    const rowValues = row.values || [];
     const maxCols = header.length + colOffset;
     for (let j = colOffset; j < maxCols; j++) denseRow.push(row.values?.[j] || '');
     return { values: denseRow, absIndex: row.absIndex };
