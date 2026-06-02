@@ -99,13 +99,23 @@ export default defineConfig({
 
                 const interaction = await client.interactions.create(config);
                 
+                console.log(`[SERVER-AI] Interaction Response Keys:`, Object.keys(interaction));
+                if (interaction.usage) {
+                  console.log(`[SERVER-AI] Token Usage:`, JSON.stringify(interaction.usage));
+                }
+
+                if (interaction.output_text) {
+                  console.log(`[SERVER-AI] Response:`, interaction.output_text.substring(0, 500) + (interaction.output_text.length > 500 ? '...' : ''));
+                }
+
                 if (!res.writableEnded) {
                   res.statusCode = 200;
                   res.setHeader('Content-Type', 'application/json');
                   res.end(JSON.stringify({
                     id: interaction.id,
                     status: interaction.status,
-                    output_text: interaction.output_text
+                    output_text: interaction.output_text,
+                    usage: interaction.usage || null
                   }));
                 }
               } catch (e) {

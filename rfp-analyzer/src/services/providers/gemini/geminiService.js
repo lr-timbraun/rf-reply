@@ -62,7 +62,8 @@ export const createAIService = (apiSettings, systemInstruction) => {
         return {
           data: JSON.parse(cleanJson),
           rawText: rawText,
-          interactionId: result.id
+          interactionId: result.id,
+          usage: result.usage
         };
       } catch (e) {
         loggerService.debugLog('JSON_PARSE_ERROR', { 

@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { AVAILABLE_PROVIDERS, getProviderClass } from '../../services/providers';
 import { AVAILABLE_SOURCE_PROVIDERS, getSourceProviderClass } from '../../services/sources';
+import { loggerService } from '../../services/loggerService';
 import { useNotify } from '../../hooks/useNotify';
 import { errorUtils } from '../../utils/errorUtils';
 import { LANGUAGES } from '../../utils/languages';
@@ -61,7 +62,8 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
   const aiSchema = useMemo(() => {
     try {
       return AIProviderClass ? AIProviderClass.getSettingsSchema().filter(f => f.category === 'AI Settings') : [];
-    } catch (err) { // eslint-disable-line no-unused-vars
+    } catch (err) {
+      loggerService.error('GET_AI_SCHEMA_FAILED', err);
       return [];
     }
   }, [AIProviderClass]);
@@ -69,7 +71,8 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
   const sourceSchema = useMemo(() => {
     try {
       return SourceProviderClass ? SourceProviderClass.getSettingsSchema() : [];
-    } catch (err) { // eslint-disable-line no-unused-vars
+    } catch (err) {
+      loggerService.error('GET_SOURCE_SCHEMA_FAILED', err);
       return [];
     }
   }, [SourceProviderClass]);
@@ -153,6 +156,7 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
       if (result.success) setTestStatus({ type: 'success', message: msg });
       else setTestStatus({ type: 'error', message: err });
     } catch (error) {
+      loggerService.error("TEST_CONNECTION_ERROR", error);
       setTestStatus({ type: 'error', message: `Unexpected error: ${errorUtils.parse(error)}` });
     }
   };
@@ -170,6 +174,7 @@ const Settings = ({ initialSettings, onSave, onBack }) => {
       setLoadSuccess(prev => ({ ...prev, [fieldId]: true }));
       setTimeout(() => setLoadSuccess(prev => ({ ...prev, [fieldId]: false })), 3000);
     } catch (error) {
+      loggerService.error(`FETCH_OPTIONS_ERROR_${fieldId}`, error);
       const msg = errorUtils.parse(error);
       setLoadError(prev => ({ ...prev, [fieldId]: true }));
       notify(`Failed to load options: ${msg}`, 'error');

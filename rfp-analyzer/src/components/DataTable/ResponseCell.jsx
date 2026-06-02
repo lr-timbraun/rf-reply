@@ -7,6 +7,7 @@ const ResponseCell = memo(({
   cellState, 
   initialValue, 
   moreInfoLabel,
+  includeSources,
   onSave, 
   onRefresh, 
   onDismissReview,
@@ -96,7 +97,7 @@ const ResponseCell = memo(({
         )}
       </div>
 
-      {cellState?.sources?.length > 0 && (
+      {includeSources && cellState?.sources?.length > 0 && (
         <div className="response-sources">
           <strong>{moreInfoLabel}:</strong>
           <ul>

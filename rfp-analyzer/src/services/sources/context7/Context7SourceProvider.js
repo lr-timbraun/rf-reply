@@ -51,6 +51,6 @@ export class Context7SourceProvider extends BaseSourceProvider {
     const libId = config.libraryId.trim();
     const desc = config.description ? ` (${config.description.trim()})` : '';
     
-    return `You have access to up-to-date documentation and code examples for the library "${libId}"${desc} via Context7. You SHOULD use your internal tools or queries to fetch specific information from this library whenever a requirement pertains to its features or implementation details.`;
+    return `Documentation and code examples for the library "${libId}"${desc} are available via Context7.`;
   }
 }

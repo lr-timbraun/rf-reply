@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * Hook to manage the state of an RFP data table during processing.
@@ -12,28 +12,39 @@ export const useRFPTable = (headerCount, initialPrompts = {}) => {
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
 
-  // Reset state when header count changes (new tab)
+  // Track the last seen initialPrompts to avoid overwriting user input
+  const lastAppliedPromptsRef = useRef(null);
+  const currentHeaderCountRef = useRef(headerCount);
+
+  // Sync initial prompts / recommendations
   useEffect(() => {
-    const defaultPrompts = Array(headerCount).fill('');
-    Object.entries(initialPrompts).forEach(([colIdx, prompt]) => {
-      const idx = parseInt(colIdx, 10);
-      if (idx < headerCount) defaultPrompts[idx] = prompt;
-    });
-    
-    // Using simple stringify for deep equality check to prevent loops
-    const currentPromptsJson = JSON.stringify(inputValues);
-    const nextPromptsJson = JSON.stringify(defaultPrompts);
+    const promptsJson = JSON.stringify(initialPrompts);
+    const countChanged = currentHeaderCountRef.current !== headerCount;
+    const promptsChanged = lastAppliedPromptsRef.current !== promptsJson;
 
-    if (currentPromptsJson !== nextPromptsJson) {
-      setInputValues(defaultPrompts); // eslint-disable-line react-hooks/set-state-in-effect
+    if (countChanged || promptsChanged) {
+      const nextPrompts = Array(headerCount).fill('');
+      Object.entries(initialPrompts).forEach(([colIdx, prompt]) => {
+        const idx = parseInt(colIdx, 10);
+        // If colIdx is 1-based (from AI) and inputValues is 0-based, 
+        // we might need to adjust. However, given we are now providing [C index] in prompt,
+        // it should match the internal index.
+        if (idx < headerCount) nextPrompts[idx] = prompt;
+      });
+
+      setInputValues(nextPrompts);
+      lastAppliedPromptsRef.current = promptsJson;
+      currentHeaderCountRef.current = headerCount;
+
+      // Also reset related state if tab changed
+      if (countChanged) {
+        setCursorPositions(Array(headerCount).fill(0));
+        setActiveInputIndex(null);
+        setCellStates({});
+        setSkippedRows(new Set());
+        setEditingCell(null);
+      }
     }
-
-    setCursorPositions(Array(headerCount).fill(0));
-    setActiveInputIndex(null);
-    setCellStates({});
-    setSkippedRows(new Set());
-    setEditingCell(null);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [headerCount, initialPrompts]); 
 
   const toggleSkipRow = (absIndex) => {

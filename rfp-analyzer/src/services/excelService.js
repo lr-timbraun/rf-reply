@@ -76,7 +76,7 @@ export const excelService = {
   /**
    * Updates a specific cell in a worksheet.
    */
-  updateCell: (workbook, tabName, rowIndex, colIndex, value) => {
+  updateCellValue: (workbook, tabName, rowIndex, colIndex, value) => {
     const worksheet = workbook.getWorksheet(tabName);
     if (!worksheet) return;
     const row = worksheet.getRow(rowIndex);
@@ -92,6 +92,27 @@ export const excelService = {
     return new Blob([buffer], { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
     });
+  },
+
+  /**
+   * High-level method to trigger a browser download of the current workbook state.
+   */
+  saveWorkbook: async (workbook, fileName = 'RFP_Analysis.xlsx') => {
+    try {
+      const blob = await excelService.generateDownloadBlob(workbook);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName.endsWith('.xlsx') || fileName.endsWith('.xlsm') ? fileName : `${fileName}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      return true;
+    } catch (e) {
+      console.error('Download failed:', e);
+      return false;
+    }
   },
 
   /**

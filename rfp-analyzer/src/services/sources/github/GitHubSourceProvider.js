@@ -50,6 +50,6 @@ export class GitHubSourceProvider extends BaseSourceProvider {
     const branch = (config.branch || 'main').trim();
     const url = `https://github.com/${owner}/${repo}/tree/${branch}`;
     
-    return `Your primary knowledge base is the GitHub repository located at: ${url}. You MUST attempt to find specific, direct URLs to files or documentation within this repository to support every answer you provide.`;
+    return `Your primary knowledge base is the GitHub repository located at: ${url}.`;
   }
 }

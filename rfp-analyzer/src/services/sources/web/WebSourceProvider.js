@@ -27,6 +27,6 @@ export class WebSourceProvider extends BaseSourceProvider {
     const url = config.url.trim();
     if (!url) return '';
     
-    return `Your primary knowledge base is located at: ${url}. You MUST attempt to find specific, direct URLs from this domain to support every answer you provide.`;
+    return `Your primary knowledge base is located at: ${url}.`;
   }
 }

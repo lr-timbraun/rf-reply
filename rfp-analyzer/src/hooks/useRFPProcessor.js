@@ -1,13 +1,29 @@
 import { useState, useCallback } from 'react';
 import { useNotify } from './useNotify';
+import { loggerService } from '../services/loggerService';
 
 /**
  * Hook to manage the AI processing loop for the RFP table.
  */
-export const useRFPProcessor = ({ processor, onCellUpdate, colOffset, header }) => {
+export const useRFPProcessor = ({ processor, tabName, onCellUpdate, colOffset, header }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [abortController, setAbortController] = useState(null);
+  const [usageStats, setUsageStats] = useState({ promptTokens: 0, responseTokens: 0, totalTokens: 0 });
   const { notify } = useNotify();
+
+  const updateUsage = useCallback((usage) => {
+    if (!usage) return;
+    
+    // Log for verification in the client debug logs
+    loggerService.debugLog('RAW_TOKEN_USAGE_METADATA', usage);
+
+    // Frontend strictly relies on the normalized unified schema provided by the AI Service
+    setUsageStats(prev => ({
+      promptTokens: prev.promptTokens + (usage.promptTokens || 0),
+      responseTokens: prev.responseTokens + (usage.responseTokens || 0),
+      totalTokens: prev.totalTokens + (usage.totalTokens || 0)
+    }));
+  }, []);
 
   const processAllRows = useCallback(async ({ dataRows, skippedRows, getActiveCols, setCellState }) => {
     if (!processor) { 
@@ -31,21 +47,24 @@ export const useRFPProcessor = ({ processor, onCellUpdate, colOffset, header }) 
         activeCols.forEach(c => setCellState(row.absIndex, c.colIndex, 'loading'));
 
         try {
-          const results = await processor.processRow({
+          const { results, usage } = await processor.processRow({
             row,
             activeCols,
             headers: header,
             abortSignal: controller.signal
           });
 
+          // Update Usage
+          updateUsage(usage);
+
           // Apply results
           results.forEach(res => {
             setCellState(row.absIndex, res.colIndex, res);
-            if (onCellUpdate) onCellUpdate(row.absIndex, res.colIndex + colOffset, res.excelText);
+            if (onCellUpdate) onCellUpdate(tabName, row.absIndex, res.colIndex + colOffset, res.excelText);
           });
         } catch (rowError) {
           if (rowError.message === 'Aborted') break;
-          console.error(`Error processing row ${row.absIndex}:`, rowError);
+          loggerService.error(`ROW_PROCESS_FAILED_R${row.absIndex}`, rowError);
           notify(`Row ${row.absIndex} failed: ${rowError.message}`, 'error');
           
           activeCols.forEach(c => {
@@ -54,13 +73,13 @@ export const useRFPProcessor = ({ processor, onCellUpdate, colOffset, header }) 
         }
       }
     } catch (error) {
-      console.error("Processing error:", error);
+      loggerService.error("BATCH_PROCESS_FAILED", error);
       notify(`Processing error: ${error.message}`, 'error');
     } finally {
       setIsProcessing(false);
       setAbortController(null);
     }
-  }, [processor, onCellUpdate, colOffset, header, notify]);
+  }, [processor, tabName, onCellUpdate, colOffset, header, notify, updateUsage]);
 
   const refreshCell = useCallback(async ({ rowIndex, colIndex, dataRows, promptTemplate, setCellState }) => {
     if (!processor) return;
@@ -69,22 +88,24 @@ export const useRFPProcessor = ({ processor, onCellUpdate, colOffset, header }) 
 
     try {
       const activeCols = [{ colIndex, promptTemplate }];
-      const results = await processor.processRow({
+      const { results, usage } = await processor.processRow({
         row,
         activeCols,
         headers: header
       });
 
+      updateUsage(usage);
+
       results.forEach(res => {
         setCellState(row.absIndex, res.colIndex, res);
-        if (onCellUpdate) onCellUpdate(row.absIndex, res.colIndex + colOffset, res.excelText);
+        if (onCellUpdate) onCellUpdate(tabName, row.absIndex, res.colIndex + colOffset, res.excelText);
       });
     } catch (e) {
-      console.error("Refresh error:", e);
+      loggerService.error(`CELL_REFRESH_FAILED_R${row.absIndex}_C${colIndex}`, e);
       notify(`Refresh failed: ${e.message}`, 'error');
       setCellState(row.absIndex, colIndex, 'Error');
     }
-  }, [processor, onCellUpdate, colOffset, header, notify]);
+  }, [processor, tabName, onCellUpdate, colOffset, header, notify, updateUsage]);
 
   const runPostAnalysis = useCallback(async ({ postProcessor, dataRows, activeCols, setCellState }) => {
     if (!postProcessor) {
@@ -95,11 +116,13 @@ export const useRFPProcessor = ({ processor, onCellUpdate, colOffset, header }) 
     setIsProcessing(true);
     try {
       notify('Running post-analysis verification...', 'info');
-      const verifications = await postProcessor.verifyAnswers({
+      const { verifications, usage } = await postProcessor.verifyAnswers({
         rows: dataRows,
         activeCols,
         headers: header
       });
+
+      updateUsage(usage);
 
       verifications.forEach(v => {
         if (v.status !== 'ok') {
@@ -112,12 +135,12 @@ export const useRFPProcessor = ({ processor, onCellUpdate, colOffset, header }) 
       });
       notify('Verification complete.', 'success');
     } catch (e) {
-      console.error("Verification error:", e);
+      loggerService.error("POST_ANALYSIS_FAILED", e);
       notify(`Verification failed: ${e.message}`, 'error');
     } finally {
       setIsProcessing(false);
     }
-  }, [header, notify]);
+  }, [header, notify, updateUsage]);
 
   const stopProcessing = useCallback(() => {
     if (abortController) {
@@ -130,6 +153,7 @@ export const useRFPProcessor = ({ processor, onCellUpdate, colOffset, header }) 
     processAllRows,
     refreshCell,
     runPostAnalysis,
-    stopProcessing
+    stopProcessing,
+    usageStats
   };
 };

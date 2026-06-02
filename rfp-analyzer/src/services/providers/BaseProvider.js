@@ -17,6 +17,13 @@
  */
 
 /**
+ * @typedef {Object} TokenUsage
+ * @property {number} promptTokens - Number of tokens in the prompt.
+ * @property {number} responseTokens - Number of tokens in the generated response.
+ * @property {number} totalTokens - Total number of tokens used.
+ */
+
+/**
  * Abstract Base Class for AI Providers.
  * All AI connectors (Gemini, OpenAI, etc.) must extend this class.
  */
@@ -56,7 +63,7 @@ export class BaseProvider {
   /**
    * Optional: Analyzes workbook structure to recommend tabs and columns.
    * @param {Object} tabData - Map of tab names to row data.
-   * @returns {Promise<{recommendedTabs: string[], tabConfigs: Object}|null>}
+   * @returns {Promise<{recommendedTabs: string[], tabConfigs: Object, usage?: TokenUsage}|null>}
    */
   async analyzeWorkbook(tabData) { // eslint-disable-line no-unused-vars
     return null;
@@ -92,7 +99,7 @@ export class BaseProvider {
    * @param {Array} params.activeCols - Selected response columns.
    * @param {Array} params.headers - Workbook headers.
    * @param {AbortSignal} [params.abortSignal]
-   * @returns {Promise<Array<{colIndex: number, text: string, excelText: string, sources: Array, needsReview: boolean}>>}
+   * @returns {Promise<{results: Array<{colIndex: number, text: string, excelText: string, sources: Array, needsReview: boolean}>, usage?: TokenUsage}>}
    */
   async processRow({ row, activeCols, headers, abortSignal }) { // eslint-disable-line no-unused-vars
     throw new Error('processRow() must be implemented by the provider.');
@@ -105,7 +112,7 @@ export class BaseProvider {
    * @param {Array} params.activeCols - Selected response columns.
    * @param {Array} params.headers - Workbook headers.
    * @param {AbortSignal} [params.abortSignal]
-   * @returns {Promise<Array<{rowIndex: number, colIndex: number, verificationNote: string, status: 'ok'|'warning'|'error'}>>}
+   * @returns {Promise<{verifications: Array<{rowIndex: number, colIndex: number, verificationNote: string, status: 'ok'|'warning'|'error'}>, usage?: TokenUsage}>}
    */
   async verifyAnswers({ rows, activeCols, headers, abortSignal }) { // eslint-disable-line no-unused-vars
     throw new Error('verifyAnswers() must be implemented by the provider.');

@@ -19,6 +19,7 @@ const DataTable = ({
   apiSettings, 
   processor, 
   recommendation,
+  onSave,
   onNext, 
   onCancel, 
   isLastTab, 
@@ -42,7 +43,26 @@ const DataTable = ({
     return excelService.getStructuredData(data, headerRowIndex);
   }, [data, headerRowIndex]);
 
-  const table = useRFPTable(header.length, recommendation?.columnPrompts);
+  // Normalize AI recommendations based on the actual table layout
+  const normalizedRecommendation = useMemo(() => {
+    if (!recommendation) return null;
+    
+    const normalizedPrompts = {};
+    if (recommendation.columnPrompts) {
+      Object.entries(recommendation.columnPrompts).forEach(([colIdx, prompt]) => {
+        // AI returns absolute [C] index. We subtract offset to align with our local array.
+        const internalIdx = parseInt(colIdx, 10) - colOffset;
+        if (internalIdx >= 0) normalizedPrompts[internalIdx] = prompt;
+      });
+    }
+
+    return {
+      ...recommendation,
+      columnPrompts: normalizedPrompts
+    };
+  }, [recommendation, colOffset]);
+
+  const table = useRFPTable(header.length, normalizedRecommendation?.columnPrompts);
 
   const setCellState = useCallback((absIndex, colIndex, stateOrFn) => {
     table.setCellStates(prev => {
@@ -53,8 +73,9 @@ const DataTable = ({
     });
   }, [table]);
 
-  const { isProcessing, processAllRows, refreshCell, runPostAnalysis, stopProcessing } = useRFPProcessor({
+  const { isProcessing, processAllRows, refreshCell, runPostAnalysis, stopProcessing, usageStats } = useRFPProcessor({
     processor,
+    tabName,
     onCellUpdate,
     colOffset,
     header
@@ -69,8 +90,8 @@ const DataTable = ({
   }, [postProcessorSettings]);
 
   const moreInfoLabel = useMemo(
-    () => getMoreInfoLabel(apiSettings.responseLanguage), 
-    [apiSettings.responseLanguage]
+    () => getMoreInfoLabel(apiSettings?.responseLanguage || 'English'), 
+    [apiSettings?.responseLanguage]
   );
 
   const handleCellSave = (absIndex, colIndex, newValue) => {
@@ -146,7 +167,7 @@ const DataTable = ({
   }, [data, headerRowIndex, header.length, colOffset]);
 
   return (
-    <div className="table-container">
+    <div className="table-wrapper">
       <TableActions 
         tabName={tabName}
         isProcessing={isProcessing}
@@ -158,6 +179,7 @@ const DataTable = ({
         })}
         onStop={stopProcessing}
         onReset={() => processor && processor.resetHistory()}
+        onDownload={onSave}
         onVerify={postProcessor ? () => runPostAnalysis({
           postProcessor,
           dataRows,
@@ -167,58 +189,62 @@ const DataTable = ({
         onCancel={onCancel}
         onNext={onNext}
         isLastTab={isLastTab}
+        usageStats={usageStats}
       />
 
-      <table>
-        <TableHeader 
-          ref={inputRefs}
-          header={header}
-          inputValues={table.inputValues}
-          onInputChange={(index, val) => {
-            const next = [...table.inputValues];
-            next[index] = val;
-            table.setInputValues(next);
-          }}
-          onInputFocus={(index, pos) => {
-            table.setActiveInputIndex(index);
-            const next = [...table.cursorPositions];
-            next[index] = pos;
-            table.setCursorPositions(next);
-          }}
-          onInputClick={(index, pos) => {
-            const next = [...table.cursorPositions];
-            next[index] = pos;
-            table.setCursorPositions(next);
-          }}
-          onHeaderClick={handleHeaderClick}
-        />
-        <TableBody 
-          metadataRows={metadataRows}
-          dataRows={dataRows}
-          header={header}
-          skippedRows={table.skippedRows}
-          cellStates={table.cellStates}
-          isProcessing={isProcessing}
-          moreInfoLabel={moreInfoLabel}
-          onToggleSkip={table.toggleSkipRow}
-          onSetHeader={(idxOrFn) => {
-            if (typeof idxOrFn === 'function') {
-              setManualHeaderIndex(prev => idxOrFn(prev ?? headerRowIndex));
-            } else {
-              setManualHeaderIndex(idxOrFn);
-            }
-          }}
-          onCellSave={handleCellSave}
-          onCellRefresh={(rowIndex, colIndex) => refreshCell({
-            rowIndex,
-            colIndex,
-            dataRows,
-            promptTemplate: table.inputValues[colIndex],
-            setCellState
-          })}
-          onDismissReview={handleDismissReview}
-        />
-      </table>
+      <div className="table-container">
+        <table>
+          <TableHeader 
+            ref={inputRefs}
+            header={header}
+            inputValues={table.inputValues}
+            onInputChange={(index, val) => {
+              const next = [...table.inputValues];
+              next[index] = val;
+              table.setInputValues(next);
+            }}
+            onInputFocus={(index, pos) => {
+              table.setActiveInputIndex(index);
+              const next = [...table.cursorPositions];
+              next[index] = pos;
+              table.setCursorPositions(next);
+            }}
+            onInputClick={(index, pos) => {
+              const next = [...table.cursorPositions];
+              next[index] = pos;
+              table.setCursorPositions(next);
+            }}
+            onHeaderClick={handleHeaderClick}
+          />
+          <TableBody 
+            metadataRows={metadataRows}
+            dataRows={dataRows}
+            header={header}
+            skippedRows={table.skippedRows}
+            cellStates={table.cellStates}
+            isProcessing={isProcessing}
+            moreInfoLabel={moreInfoLabel}
+            includeSources={apiSettings?.includeSourcesInAnswers ?? true}
+            onToggleSkip={table.toggleSkipRow}
+            onSetHeader={(idxOrFn) => {
+              if (typeof idxOrFn === 'function') {
+                setManualHeaderIndex(prev => idxOrFn(prev ?? headerRowIndex));
+              } else {
+                setManualHeaderIndex(idxOrFn);
+              }
+            }}
+            onCellSave={handleCellSave}
+            onCellRefresh={(rowIndex, colIndex) => refreshCell({
+              rowIndex,
+              colIndex,
+              dataRows,
+              promptTemplate: table.inputValues[colIndex],
+              setCellState
+            })}
+            onDismissReview={handleDismissReview}
+          />
+        </table>
+      </div>
     </div>
   );
 };

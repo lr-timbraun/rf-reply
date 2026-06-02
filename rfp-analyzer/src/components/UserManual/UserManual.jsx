@@ -47,23 +47,28 @@ const UserManual = ({ onBack }) => {
 
         <section>
           <h2>3. Workflow</h2>
-          <h3>Step 1: Upload & Pre-Analysis</h3>
-          <p>Select your <code>.xlsx</code> or <code>.xlsm</code> file. If <strong>AI Pre-Analysis</strong> is enabled, a dedicated AI will automatically identify requirements and map response columns for you.</p>
+          <h3>Step 1: Upload & Checkpoint</h3>
+          <p>Drag and drop your <code>.xlsx</code> or <code>.xlsm</code> file directly onto the upload card, or click to browse. Once loaded, you will see a file summary. Click the prominent <strong>GO!</strong> button to proceed. If <strong>AI Pre-Analysis</strong> is enabled, a dedicated AI will automatically analyze the workbook structure to identify questionnaire tabs and columns for you before you select sheets.</p>
           
           <h3>Step 2: Interactive Table</h3>
-          <p>Verify the detected headers. If incorrect, use the <strong>^</strong> icon in the first 10 rows to set the header row manually. Enter your prompt templates above the columns (e.g., <code>{'{Requirement}'}</code>).</p>
+          <p>Verify the detected headers. If incorrect, use the <strong>Arrow Bar Up</strong> icon (in the first 10 rows) to set the header row manually. Enter your prompt templates above the columns (e.g., <code>{'{Requirement}'}</code>). Hover over any icon button for a detailed description of what it does.</p>
 
-          <h3>Step 3: Execution</h3>
+          <h3>Step 3: Execution & Token Monitoring</h3>
           <ul>
             <li><strong>Context Awareness:</strong> The AI maintains a stateful chain, remembering previous answers to ensure global consistency across the tab.</li>
             <li><strong>Unified Requests:</strong> All column prompts for a single row are sent in one call to coordinate complex answers (like a Status and its corresponding logic).</li>
+            <li><strong>Live Token Dashboard:</strong> Monitor your model consumption in real-time. The <strong>Tokens</strong> stats in the top-left displays your active session's cumulative token counts, broken down by Prompt (P) and Response (R).</li>
           </ul>
 
           <h3>Step 4: Post-Analysis Verification (Optional)</h3>
           <p>Once all rows are filled, click <strong>Verify Responses</strong>. A fresh AI session will review the entire document for correctness, consistency, and potential hallucinations.</p>
 
           <h3>Step 5: Review & Download</h3>
-          <p>Manual edits are automatically fed back into the AI's memory. Once satisfied, click <strong>Finish</strong> to download the updated file with all original formatting preserved.</p>
+          <p>Manual edits are automatically fed back into the AI's memory. You have two final actions:</p>
+          <ul>
+            <li><strong>Download:</strong> Click <strong>Download</strong> at any time to save and export your current progress to an Excel file without closing your current workspace.</li>
+            <li><strong>Close File:</strong> Click <strong>Close File</strong> when you are finished to safely clear the session and return to the main landing page.</li>
+          </ul>
         </section>
 
         <section>

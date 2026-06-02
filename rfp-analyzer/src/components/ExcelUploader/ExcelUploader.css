@@ -1,0 +1,233 @@
+.uploader-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.upload-area {
+  width: 100%;
+  height: 250px;
+  border: 2px dashed #ccc;
+  border-radius: 0; /* Square corners matching tables/tabs */
+  background-color: #fafbfc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.upload-area:hover {
+  border-color: #0077D4;
+  background-color: #f3f9ff;
+}
+
+.upload-area.dragging {
+  border-color: #0077D4;
+  background-color: #e6f3ff;
+  border-style: solid; /* Solid border on drag hover */
+  transform: scale(1.02); /* Subtle pop effect */
+}
+
+.file-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.upload-icon {
+  font-size: 3.5rem;
+  margin-bottom: 15px;
+  transition: transform 0.2s;
+}
+
+.upload-area:hover .upload-icon {
+  transform: translateY(-5px); /* Subtly lift the icon on hover */
+}
+
+.file-label span {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.file-label small {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Dark Mode Overrides */
+@media (prefers-color-scheme: dark) {
+  .upload-area {
+    background-color: #252526;
+    border-color: #444;
+  }
+  
+  .upload-area:hover {
+    border-color: #61dafb;
+    background-color: rgba(97, 218, 251, 0.05);
+  }
+  
+  .upload-area.dragging {
+    border-color: #61dafb;
+    background-color: rgba(97, 218, 251, 0.1);
+  }
+  
+  .file-label span {
+    color: #eee;
+  }
+  
+  .file-label small {
+    color: #aaa;
+  }
+}
+
+/* File Loaded Checkpoint State (Square design) */
+.file-ready-card {
+  width: 100%;
+  border: 1px solid #ced4da;
+  background-color: #ffffff;
+  padding: 30px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box;
+}
+
+.file-ready-icon {
+  font-size: 3.5rem;
+  margin-bottom: 15px;
+}
+
+.file-ready-card h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 1.5rem;
+}
+
+.file-details {
+  background-color: #f8f9fa;
+  padding: 15px 20px;
+  margin-bottom: 20px;
+  display: inline-block;
+  text-align: left;
+  border: 1px solid #dee2e6;
+  min-width: 250px;
+}
+
+.file-details p {
+  margin: 6px 0;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+.file-instruction {
+  font-size: 0.95rem;
+  color: #666;
+  max-width: 500px;
+  margin: 0 auto 30px auto;
+  line-height: 1.5;
+}
+
+.file-ready-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.ready-btn {
+  padding: 10px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 4px; /* Maintain standard button rounded outlines */
+  transition: all 0.2s;
+  box-sizing: border-box;
+}
+
+/* Clear File is Secondary Outlined Gray */
+.clear-btn {
+  background-color: transparent;
+  border: 1px solid #757575;
+  color: #555;
+}
+
+.clear-btn:hover {
+  background-color: #f5f5f5;
+  border-color: #555;
+  color: #333;
+}
+
+/* GO! is Primary Solid Blue */
+.go-btn {
+  background-color: #0077D4;
+  color: white;
+  border: 1px solid #0077D4;
+}
+
+.go-btn:hover {
+  background-color: #005a9e;
+  border-color: #005a9e;
+}
+
+/* Dark Mode Checkpoint Overrides */
+@media (prefers-color-scheme: dark) {
+  .file-ready-card {
+    background-color: #252526;
+    border-color: #333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+  
+  .file-ready-card h3 {
+    color: #fff;
+  }
+  
+  .file-details {
+    background-color: #2d2d2d;
+    border-color: #444;
+  }
+  
+  .file-details p {
+    color: #ccc;
+  }
+  
+  .file-instruction {
+    color: #aaa;
+  }
+  
+  .clear-btn {
+    border-color: #888;
+    color: #ccc;
+  }
+  
+  .clear-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: #aaa;
+    color: #fff;
+  }
+  
+  .go-btn {
+    background-color: #1976D2;
+    border-color: #1976D2;
+  }
+  
+  .go-btn:hover {
+    background-color: #1565C0;
+    border-color: #1565C0;
+  }
+}
