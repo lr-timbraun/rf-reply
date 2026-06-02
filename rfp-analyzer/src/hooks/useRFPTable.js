@@ -3,29 +3,38 @@ import { useState, useEffect } from 'react';
 /**
  * Hook to manage the state of an RFP data table during processing.
  */
-export const useRFPTable = (headerCount) => {
+export const useRFPTable = (headerCount, initialPrompts = {}) => {
   const [inputValues, setInputValues] = useState(Array(headerCount).fill(''));
   const [cursorPositions, setCursorPositions] = useState(Array(headerCount).fill(0));
   const [activeInputIndex, setActiveInputIndex] = useState(null);
   const [cellStates, setCellStates] = useState({});
   const [skippedRows, setSkippedRows] = useState(new Set());
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [abortController, setAbortController] = useState(null);
   const [editingCell, setEditingCell] = useState(null);
   const [editValue, setEditValue] = useState('');
-  const [chatHistory, setChatHistory] = useState([]);
 
   // Reset state when header count changes (new tab)
   useEffect(() => {
-    setInputValues(Array(headerCount).fill(''));
+    const defaultPrompts = Array(headerCount).fill('');
+    Object.entries(initialPrompts).forEach(([colIdx, prompt]) => {
+      const idx = parseInt(colIdx, 10);
+      if (idx < headerCount) defaultPrompts[idx] = prompt;
+    });
+    
+    // Using simple stringify for deep equality check to prevent loops
+    const currentPromptsJson = JSON.stringify(inputValues);
+    const nextPromptsJson = JSON.stringify(defaultPrompts);
+
+    if (currentPromptsJson !== nextPromptsJson) {
+      setInputValues(defaultPrompts); // eslint-disable-line react-hooks/set-state-in-effect
+    }
+
     setCursorPositions(Array(headerCount).fill(0));
     setActiveInputIndex(null);
     setCellStates({});
     setSkippedRows(new Set());
-    setIsProcessing(false);
     setEditingCell(null);
-    setChatHistory([]);
-  }, [headerCount]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [headerCount, initialPrompts]); 
 
   const toggleSkipRow = (absIndex) => {
     setSkippedRows(prev => {
@@ -53,11 +62,8 @@ export const useRFPTable = (headerCount) => {
     activeInputIndex, setActiveInputIndex,
     cellStates, setCellStates,
     skippedRows, toggleSkipRow,
-    isProcessing, setIsProcessing,
-    abortController, setAbortController,
     editingCell, setEditingCell,
     editValue, setEditValue,
-    chatHistory, setChatHistory,
     getActiveCols
   };
 };

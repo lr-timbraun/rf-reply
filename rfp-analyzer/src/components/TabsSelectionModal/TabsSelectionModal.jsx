@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import './TabsSelectionModal.css';
 
-const TabsSelectionModal = ({ tabs, onConfirm, onCancel }) => {
-  const [selectedTabs, setSelectedTabs] = useState([]);
+const TabsSelectionModal = ({ tabs, initialSelections = [], onConfirm, onCancel }) => {
+  const [selectedTabs, setSelectedTabs] = useState(initialSelections);
 
   const handleCheckboxChange = (tabName) => {
     setSelectedTabs((prevSelectedTabs) => {

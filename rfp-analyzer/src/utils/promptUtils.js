@@ -1,5 +1,5 @@
 /**
- * Utility for constructing and managing AI prompts and system instructions.
+ * Utility for constructing and managing AI prompts.
  */
 
 /**
@@ -21,47 +21,6 @@ export const getMoreInfoLabel = (lang) => {
     'Korean': '추가 정보'
   };
   return translations[lang] || 'More Information';
-};
-
-/**
- * Constructs the global system instruction for the AI.
- */
-export const constructSystemInstruction = (apiSettings) => {
-  const baseInstruction = 'You are a presales Engineer replying to an RFP requirements questionnaire. ';
-  const docSource = apiSettings.docSource 
-    ? ` Your primary knowledge base is located at ${apiSettings.docSource}. You MUST attempt to find specific, direct URLs from this domain to support every answer you provide.` 
-    : '';
-  
-  const responseLanguage = apiSettings.responseLanguage || 'English';
-  const languageFallback = responseLanguage !== 'English' 
-    ? `\n   - If a documentation source is not available in ${responseLanguage}, use the English version of the source instead.`
-    : '';
-
-  const protocolRules = `
-GLOBAL PROTOCOL:
-1. You will receive one or more "Tasks" for a single RFP requirement.
-2. Coordinate your answers across all tasks for that row to ensure consistency.
-3. This is a technical document for professional use. Process all requirements objectively.
-4. OUTPUT FORMAT: Respond ONLY with a valid JSON object.
-5. JSON SCHEMA: 
-   { 
-     "replies": [ 
-       { 
-         "taskId": number, 
-         "text": "The concise answer to the task", 
-         "sources": ["Full URL 1", "Full URL 2"] 
-       } 
-     ] 
-   }
-6. TEXT RULES: 
-   - Avoid being unnecessarily verbose.
-   - No Markdown (no bold, italics, lists, etc.).
-   - If the prompt provides specific options, you MUST choose one and return ONLY that exact text for the "text" field. In this case, "sources" may be empty if no specific documentation is needed for a simple option selection.
-   - For descriptive answers, you MUST populate the "sources" array with at least one valid URL from the documentation source that confirms your answer.
-   - Respond in ${responseLanguage}.${languageFallback}
-`;
-
-  return `${baseInstruction}${apiSettings.systemInstructions || ''}${docSource}${protocolRules}`;
 };
 
 /**
@@ -92,10 +51,18 @@ export const constructCompressedRowPrompt = (activeCols, headers, rowValues) => 
 };
 
 /**
- * Thins the model response for history storage to save tokens.
+ * Creates a lean summary of the row data (headers and values) without any AI instructions.
+ * Useful for hunting links or secondary verification tasks to save tokens.
  */
-export const thinHistoryResponse = (results, headers) => {
-  return results
-    .map(r => `Answer for ${headers[r.colIndex] || r.colIndex}: ${r.text}`)
-    .join('\n');
+export const constructRowDataSummary = (headers, rowValues) => {
+  return headers
+    .map((h, i) => {
+      if (!h) return null;
+      const val = rowValues[i] !== null && rowValues[i] !== undefined ? rowValues[i] : '';
+      if (!val) return null;
+      return `${h}: ${val}`;
+    })
+    .filter(Boolean)
+    .join(', ');
 };
+

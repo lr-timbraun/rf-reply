@@ -1,82 +1,51 @@
-# RFP Analyzer
+# RFP Analyzer (v2.0-dev)
 
-A specialized tool designed for Sales Engineers to analyze and generate responses for RFP (Request for Proposal) documents. It leverages Google Gemini AI to provide high-quality, context-aware answers.
+An enterprise-grade tool designed for Sales and Presales Engineers to automate and verify responses for complex RFP (Request for Proposal) documents. It leverages advanced AI orchestration to generate consistent, context-aware answers from prioritized knowledge bases.
 
-## Overview
+## Major Advancements in v2.0
 
-The RFP Analyzer streamlines the process of responding to complex technical requirements by:
-- Processing Excel-based RFP documents.
-- Utilizing Google's Gemini models to draft responses.
-- Providing a secure way to manage API credentials and AI parameters.
+- **Master Passphrase Security**: Fully secure local storage with user-provided encryption keys. No more hardcoded secrets.
+- **Multi-Source Prioritization**: Mix and match Web, GitHub, MCP, and Context7 sources. Order them by importance to guide the AI's "source of truth".
+- **AI-Powered Workflow Automation**:
+    - **Discovery (Pre-Analysis)**: Automates the tedious mapping of requirements and headers.
+    - **Generation**: High-quality response drafting with stateful memory and coordinated multi-column processing.
+    - **QA (Post-Analysis)**: A fresh AI reviewer checks the final document for correctness and consistency.
+- **Pluggable Architecture**: Modular system for adding new AI providers and custom documentation connectors.
+- **Professional UX**: Multi-page settings manager, sidebar navigation, and full Dark Mode support.
 
-## Key Features
+## Core Features
 
-- **Context-Aware Conversations**: The AI maintains a conversation history for each tab, ensuring responses are consistent and aware of previous requirements.
-- **Unified Row Requests**: Multiple columns per row are processed in a single API call, ensuring perfect coordination between answers (e.g., matching a "Yes/No" status with its explanation).
-- **AI-Powered Responses**: Directly integrated with the Google Generative AI SDK (`@google/generative-ai`).
-- **Excel Workflow**: Upload RFP spreadsheets, select relevant columns, and process requirements in bulk or individually.
-- **Documentation Reference & Localized Citations**: Specify a documentation URL to guide the AI. Citations are automatically included and labeled as "More Information" (localized based on the response language).
-- **Secure Configuration**: API keys and sensitive settings are encrypted using AES (via `crypto-js`) before being stored in the browser's local storage.
-- **Debug Logging**: Dedicated server-side logging for prompts and raw AI responses (enabled via `--debug` flag).
-- **Customizable AI Parameters**: Fine-tune the AI's behavior by adjusting temperature, max tokens (default 2048), and additional system instructions.
-- **Built-in User Manual**: Accessible documentation within the app to guide users through the workflow.
-
-## Project Structure
-
-- `rfp-analyzer/`: The core React application built with Vite.
-- `rfp-analyzer/src/`: Organized into `components`, `services`, `hooks`, and `utils`.
-- `rfp-analyzer/server.cjs`: A lightweight Node.js server to serve the production build and handle debug logging.
-- `rfp-analyzer/dist/`: Contains the optimized production build (created via `npm run build`).
+- **Context-Aware Memory**: The AI remembers previous answers within a tab to maintain objective consistency.
+- **Manual Feedback Loop**: Your edits help the AI learn. Manual corrections are fed back into the session history to improve subsequent answers.
+- **Citations & Control**: Optional inclusion of localized "More Information" links for full transparency.
+- **Excel Native**: Full preservation of original workbook formatting, styles, and formulas.
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (Recommended: Latest LTS version)
-- A Google Gemini API Key
+- [Node.js](https://nodejs.org/) (Recommended: Latest LTS)
+- A Google Gemini API Key (or other supported AI providers)
 
-### Installation
+### Quick Start
 
-1. Navigate to the `rfp-analyzer` directory:
-   ```bash
-   cd rfp-analyzer
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+1.  **Install dependencies**:
+    ```bash
+    cd rfp-analyzer
+    npm install
+    ```
+2.  **Launch the application**:
+    - **Development**: `npm run dev`
+    - **Production (Windows)**: Run `run.bat`
+    - **Production (Linux/macOS)**: `./run.sh`
+3.  **Initialize your Vault**: Set your Master Passphrase and configure your first AI preset and documentation sources.
 
-### Running the Application
+## Configuration & Usage
 
-#### Development Mode
-To run the app in development mode with Hot Module Replacement (HMR):
-```bash
-npm run dev
-```
-
-#### Production Mode (Serving Built Files)
-If you want to run the pre-built application using the included local server:
-
-- **Windows**: Double-click `run.bat` (or run it via CMD/PowerShell).
-- **macOS/Linux**: Run the shell script:
-  ```bash
-  ./run.sh
-  ```
-The application will be available at `http://localhost:3000`.
-
-#### Debug Mode
-To see raw AI prompts and responses in the server console:
-```bash
-node server.cjs --debug
-```
-
-## Configuration
-
-Upon launching the application, click on the **Settings** button to configure:
-1. **API Key**: Your Google Gemini API key.
-2. **Model**: Select the desired Gemini model.
-3. **Documentation Source**: Provide a URL for the AI to use as its primary knowledge reference.
-4. **Additional System Instructions**: Define any extra context or persona details.
+Access the **Settings** panel to manage your environment:
+- **AI Configurations**: Save multiple presets for different models (Flash vs. Pro) and temperatures.
+- **Source Definitions**: Register documentation URLs, repositories, and context servers.
+- **General Tab**: Select your active presets, enable/disable pre/post processing, and set your target response language.
 
 ---
-*Note: This tool is intended for internal use by Sales Engineers.*
+*Note: This tool is intended for professional use by Technical Sales Engineers. All API keys and data remain local to your browser and are never transmitted to any central server besides the chosen AI provider.*

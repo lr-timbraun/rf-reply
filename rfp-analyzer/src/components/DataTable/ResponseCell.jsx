@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 
 /**
  * Encapsulates the logic for a single interactive cell in the RFP table.
- * Handles loading states, inline editing, manual saves, and source display.
  */
-const ResponseCell = ({ 
-  cellKey, 
+const ResponseCell = memo(({ 
   cellState, 
   initialValue, 
   moreInfoLabel,
   onSave, 
   onRefresh, 
+  onDismissReview,
   isProcessing 
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -18,6 +17,9 @@ const ResponseCell = ({
 
   const displayContent = cellState?.text !== undefined ? cellState.text : initialValue;
   const isLoading = cellState === 'loading';
+  const needsReview = cellState?.needsReview === true;
+  const verificationNote = cellState?.verificationNote;
+  const status = cellState?.status || 'ok';
 
   const startEditing = () => {
     if (isProcessing || isLoading) return;
@@ -44,7 +46,7 @@ const ResponseCell = ({
   const showRefreshButton = cellState?.text && cellState !== 'Skipped' && !isProcessing;
 
   return (
-    <td>
+    <td className={`${needsReview ? 'needs-review-cell' : ''} status-${status}`}>
       <div className="response-cell-content">
         {isLoading ? (
           <div className="spinner" title="AI is thinking..."></div>
@@ -58,13 +60,30 @@ const ResponseCell = ({
             onKeyDown={handleKeyDown}
           />
         ) : (
-          <span 
-            className={`response-text ${!isProcessing ? 'editable' : ''}`}
-            onClick={startEditing}
-            title={!isProcessing ? "Click to edit" : ""}
-          >
-            {displayContent}
-          </span>
+          <div className="text-container">
+            <span 
+              className={`response-text ${!isProcessing ? 'editable' : ''}`}
+              onClick={startEditing}
+              title={!isProcessing ? "Click to edit" : ""}
+            >
+              {displayContent}
+            </span>
+            {(needsReview || verificationNote) && !isEditing && (
+              <div className={`review-badge-container ${status}`}>
+                <span className="review-badge" title={verificationNote || "AI suggested a manual review."}>
+                  {status === 'error' ? '❌ Error' : '⚠️ Review Required'}
+                </span>
+                <button 
+                  className="dismiss-review-button" 
+                  onClick={onDismissReview}
+                  title="Mark as reviewed (removes flag)"
+                >
+                  &times;
+                </button>
+                {verificationNote && <div className="verification-note">{verificationNote}</div>}
+              </div>
+            )}
+          </div>
         )}
         
         {showRefreshButton && (
@@ -93,6 +112,6 @@ const ResponseCell = ({
       )}
     </td>
   );
-};
+});
 
 export default ResponseCell;

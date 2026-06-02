@@ -1,22 +1,25 @@
-# RFP Analyzer - Frontend Application
+# RFP Analyzer - Frontend Application (v2.0-dev)
 
-This is the React-based frontend for the RFP Analyzer tool, built with Vite and utilizing the Google Generative AI SDK.
+The React-based frontend for the RFP Analyzer tool, featuring a highly modular AI architecture, prioritized multi-source documentation, and a secure configuration vault.
 
 ## Key Technologies
 
 - **React 19**: Modern UI library for the frontend.
-- **Vite**: Ultra-fast build tool and development server.
-- **@google/generative-ai**: Google's official library for Gemini API interaction.
-- **ExcelJS**: Powerful library for reading and manipulating XLSX spreadsheets.
-- **Crypto-js**: Used for AES encryption of API keys stored in local storage.
+- **Vite 8**: Ultra-fast build tool and development server.
+- **Master Passphrase Security**: User-provided passphrase used for local AES encryption (via `crypto-js`), ensuring API keys are never stored in plain text.
+- **Pluggable AI & Source Providers**: Abstracted interfaces allowing for diverse AI models (Gemini, etc.) and knowledge bases (Web, GitHub, MCP, Context7).
+- **ExcelJS**: Powerful library for reading and manipulating XLSX spreadsheets with original formatting preservation.
 
-## Features
+## Advanced Features
 
-- **Excel Uploader**: Securely parses local Excel files and renders them in an interactive data table.
-- **Interactive Data Table**: Allows users to select columns for requirements and target response locations.
-- **AI-Powered Response Generation**: Processes selected requirements through Gemini models using a customizable system prompt.
-- **Secure Settings**: Encrypts and persists user settings (API keys, model preferences, temperature) directly in the browser.
-- **Built-in User Manual**: A dedicated help section explaining the end-to-end workflow.
+- **Multi-Source Prioritization**: Define multiple documentation sources and repositories, then prioritize them to guide the AI's reasoning.
+- **Independent Pre/Post Processing**:
+    - **Pre-Analysis**: Automated workbook structure discovery (tabs, headers, and column prompts).
+    - **Post-Analysis Verification**: A batch QA step where a fresh AI checks all responses for correctness and global consistency.
+- **AI Configuration Presets**: Save and switch between different AI models and parameter sets for discovery versus execution.
+- **Interactive Data Table**: Rich spreadsheet interface with inline editing, row skipping, and dynamic prompt templating.
+- **Manual Feedback Loop**: Manual corrections are fed back into the stateful AI chain, enabling "learning" within a session.
+- **Dark Mode Support**: Full-scale compatibility across all management views and interactive components.
 
 ## Development
 
@@ -29,17 +32,16 @@ npm install
 ### Scripts
 
 - `npm run dev`: Starts the Vite development server with HMR.
-- `npm run build`: Generates the optimized production build in the `dist/` folder.
-- `npm run lint`: Runs ESLint for code quality checks.
+- `npm run build`: Generates the optimized production build.
+- `npm run lint`: Runs ESLint for architectural and code quality checks.
 - `npm run preview`: Locally previews the production build.
 
 ## Project Structure
 
-- `src/App.jsx`: Main entry point and state management for settings and navigation.
-- `src/ExcelUploader.jsx`: Component for handling file uploads and initial data processing.
-- `src/DataTable.jsx`: The core interactive component for managing RFP data and AI interaction.
-- `src/Settings.jsx`: UI for managing API keys and model parameters.
-- `src/UserManual.jsx`: Static documentation component.
-- `src/assets/`: Static assets like logos and icons.
+- `src/services/providers/`: Encapsulates AI-specific logic (e.g., Gemini).
+- `src/services/sources/`: Modular source connectors (GitHub, Web, MCP, Context7).
+- `src/components/DataTable/`: The core interactive logic for managing RFP processing.
+- `src/components/Settings/`: Multi-page sidebar management for AI and Sources.
+- `src/hooks/useSettings.js`: Central security hook managing the encrypted vault and global merges.
 
-For information on how to serve the production build, please refer to the main [README.md](../README.md) in the project root.
+For full deployment instructions, please refer to the main [README.md](../README.md).

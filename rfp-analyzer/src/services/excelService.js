@@ -14,6 +14,38 @@ export const excelService = {
   },
 
   /**
+   * Internal helper to extract a primitive value from an ExcelJS cell.
+   * Handles formulas, rich text, and other complex objects.
+   */
+  _extractValue: (cellValue) => {
+    if (cellValue === null || cellValue === undefined) return '';
+    
+    // Handle complex objects with the safety pattern
+    if (typeof cellValue === 'object') {
+      // Handle Formula objects: { formula: '...', result: '...' }
+      if ('result' in cellValue) {
+        return cellValue.result ?? '';
+      }
+      
+      // Handle Rich Text objects: { richText: [...] }
+      if (cellValue.richText && Array.isArray(cellValue.richText)) {
+        return cellValue.richText.map(rt => rt.text || '').join('');
+      }
+
+      // Handle other objects (except Dates)
+      if (!(cellValue instanceof Date)) {
+        try {
+          return JSON.stringify(cellValue);
+        } catch (error) { // eslint-disable-line no-unused-vars
+          return String(cellValue);
+        }
+      }
+    }
+
+    return cellValue;
+  },
+
+  /**
    * Extracts data from specified worksheets.
    */
   extractTabsData: (workbook, tabNames) => {
@@ -28,7 +60,7 @@ export const excelService = {
         const rowValues = [];
         if (row) {
           for (let j = 1; j <= maxCol; j++) {
-            rowValues[j] = row.getCell(j).value;
+            rowValues[j] = excelService._extractValue(row.getCell(j).value);
           }
         }
         currentTabData.push({
@@ -60,5 +92,70 @@ export const excelService = {
     return new Blob([buffer], { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
     });
+  },
+
+  /**
+   * Heuristic to find the likely header row index.
+   * Scans first 20 rows for the first dense row.
+   */
+  detectHeaderIndex: (rows) => {
+    if (!rows || rows.length === 0) return 0;
+    const scanLimit = Math.min(rows.length, 20);
+    let maxFilled = 0;
+    
+    // Pass 1: Find max filled count
+    for (let i = 0; i < scanLimit; i++) {
+      const rowValues = rows[i].values;
+      const filled = rowValues ? rowValues.filter(v => v !== null && v !== undefined && v !== '').length : 0;
+      if (filled > maxFilled) maxFilled = filled;
+    }
+    
+    // Pass 2: Find first row that meets 80% of max density
+    for (let i = 0; i < scanLimit; i++) {
+      const rowValues = rows[i].values;
+      const filled = rowValues ? rowValues.filter(v => v !== null && v !== undefined && v !== '').length : 0;
+      if (filled >= maxFilled * 0.8 && filled > 1) {
+        return i;
+      }
+    }
+    return 0;
+  },
+
+  /**
+   * Processes raw rows into structured header and data objects.
+   */
+  getStructuredData: (rows, headerRowIndex) => {
+    if (!rows || rows.length === 0) return { header: [], dataRows: [], colOffset: 1 };
+    
+    const safeHeaderIndex = Math.min(headerRowIndex, rows.length - 1);
+    const headerRow = rows[safeHeaderIndex];
+    
+    let maxCols = 0;
+    rows.forEach(row => { 
+      if (row.values && row.values.length > maxCols) maxCols = row.values.length; 
+    });
+
+    const rawHeader = [];
+    for (let j = 1; j < maxCols; j++) {
+      rawHeader.push(headerRow.values[j] || '');
+    }
+
+    let currentHeader = [...rawHeader];
+    let offset = 1;
+    if (currentHeader.length > 0 && !currentHeader[0]) {
+      currentHeader.shift();
+      offset = 2;
+    }
+
+    const dataRows = rows.slice(safeHeaderIndex + 1).map(row => {
+      const denseRow = [];
+      const rowValues = row.values || [];
+      for (let j = offset; j < maxCols; j++) {
+        denseRow.push(rowValues[j] !== null && rowValues[j] !== undefined ? rowValues[j] : '');
+      }
+      return { values: denseRow, absIndex: row.absIndex };
+    });
+
+    return { header: currentHeader, dataRows, colOffset: offset };
   }
 };

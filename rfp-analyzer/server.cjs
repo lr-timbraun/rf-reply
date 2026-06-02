@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 const PORT = 3000;
 const DIST_DIR = path.join(__dirname, 'dist');
@@ -46,6 +47,49 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ status: 'ok' }));
     });
+    return;
+  }
+
+  // Handle Link Validation Proxy
+  if (req.url.startsWith('/api/validate-link') && req.method === 'GET') {
+    const targetUrl = new URL(req.url, `http://${req.headers.host}`).searchParams.get('url');
+    if (!targetUrl) {
+      res.writeHead(400);
+      res.end('Missing url parameter');
+      return;
+    }
+
+    let hasResponded = false;
+    const sendResponse = (valid, statusOrError) => {
+      if (hasResponded) return;
+      hasResponded = true;
+      if (IS_DEBUG) {
+        console.log(`[SERVER-CHECK] ${valid ? 'VALID' : 'BROKEN'} (${statusOrError}): ${targetUrl}`);
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ valid, status: statusOrError }));
+    };
+
+    try {
+      const client = targetUrl.startsWith('https') ? https : http;
+      const request = client.request(targetUrl, { method: 'HEAD', timeout: 5000 }, (proxyRes) => {
+        const isValid = proxyRes.statusCode >= 200 && proxyRes.statusCode < 400;
+        sendResponse(isValid, proxyRes.statusCode);
+      });
+
+      request.on('error', (e) => {
+        sendResponse(false, e.message);
+      });
+
+      request.on('timeout', () => {
+        request.destroy();
+        sendResponse(false, 'Timeout');
+      });
+
+      request.end();
+    } catch (err) {
+      sendResponse(false, err.message);
+    }
     return;
   }
 
